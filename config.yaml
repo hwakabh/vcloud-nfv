@@ -1,0 +1,36 @@
+---
+vcenter:
+  - hostname: vcsa02.nfvlab.local
+    username: administrator@vsphere.local
+    password: VMware1!
+  # - hostname: vcsa01.nfvlab.local
+  #   username: administrator@vsphere.local
+  #   password: VMware1!
+nsx:
+  - hostname: nsxmgr02.nfvlab.local
+    username: admin
+    password: VMware1!VMware1!
+  # - hostname: nsxmgr02.nfvlab.local
+  #   username: admin
+  #   password: VMware1!VMware1!
+vio:
+  - hostname: viomgr02.nfvlab.local
+    username: admin
+    password: VMware1!
+vrops:
+  - hostname: vrops02-a.nfvlab.local 
+    username: admin
+    password: VMware1!
+  - hostname: vrops02-b.nfvlab.local 
+    username: admin
+    password: VMware1!
+vrli:
+  - hostname: vrli.nfvlab.local
+    username: admin
+    password: VMware1!
+    provider: Local
+vrni:
+  - hostname: vrni02.nfvlab.local
+    username: admin@local
+    password: VMware1!
+    domain: LOCAL
