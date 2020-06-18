@@ -228,8 +228,8 @@ def get_nsxt_configs(config):
         print('Name: \t\t\t{}'.format(dhcp_server['display_name']))
         print('UUID: \t\t\t{}'.format(dhcp_server['unique_id']))
         print('Server Address: \t{}'.format(dhcp_server['server_address']))
-        # TODO: Resolve with edge-cluster name by URI path
-        print('Edge Cluster: \t\t{}'.format(dhcp_server['edge_cluster_path']))
+        edge = nsx.get('/policy/api/v1{}'.format(dhcp_server['edge_cluster_path']))
+        print('Edge Cluster: \t\t{}'.format(edge['display_name']))
         print()
 
     print('>>> Metadata Proxies')
@@ -237,8 +237,8 @@ def get_nsxt_configs(config):
         print('Name: \t\t\t{}'.format(mk_proxy['display_name']))
         print('UUID: \t\t\t{}'.format(mk_proxy['unique_id']))
         print('Server Address: \t{}'.format(mk_proxy['server_address']))
-        # TODO: Resolve with edge-cluster name by URI path
-        print('Edge Cluster: \t\t{}'.format(mk_proxy['edge_cluster_path']))
+        edge = nsx.get('/policy/api/v1{}'.format(dhcp_server['edge_cluster_path']))
+        print('Edge Cluster: \t\t{}'.format(edge['display_name']))
         print()
 
     # Return JSON value with parsed
