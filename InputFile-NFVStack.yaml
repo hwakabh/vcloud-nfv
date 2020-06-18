@@ -1,3 +1,4 @@
+## Infrastructure-wide configurations
 product0: Infra
 infra_ntp_server: 192.168.100.2
 infra_dns_server: 192.168.100.2
@@ -7,6 +8,8 @@ viodeployment: Y
 nfvstack: 3.3
 all_flash_vsan: y
 pod_design: 3POD
+
+## Configurations for M-Plane POD
 management:
   datastore_type: vSAN
   host:
@@ -27,30 +30,30 @@ management:
         vmotion_ip: 192.168.101.213
         vsan_ip: 192.168.102.213
     user: root
-    password: Vmware1!
+    password: VMware1!
     vmotion_mask: 255.255.255.0
     vsan_mask: 255.255.255.0
   vcenter:
     binary_path: C:\\VMware-VCSA-all-6.7.0-15132721.iso
     deployment_option: small
-    appliance_name: mgmtvc.psolab.local
-    hostname: mgmtvc.psolab.local
-    name: mgmtvc
-    gateway: 192.168.100.1
+    appliance_name: vcsa02
+    hostname: vcsa02.nfvlab.local
+    name: vcsa02
+    gateway: 172.16.111.254
     subnet_mask: 255.255.255.0
-    ip_address: 192.168.100.214
+    ip_address: 172.16.111.51
     ip_family: IPv4
     network_mode: static
     network_prefix: 24
-    root_password: Vmware1!
-    sso_password: Vmware1!
+    root_password: VMware1!
+    sso_password: VMware1!
     sso_domain: vsphere.local
-    user_name: Administrator@vsphere.local
+    user_name: administrator@vsphere.local
     deployment_network_switch: vSwitch0
-    subnet: 192.168.100.0
-    dc_name: MgmtDC
-    cluster_name: MgmtCluster
-    infra_dv_switch: MgmtInfra
+    subnet: 172.16.111.0
+    dc_name: Datacenter
+    cluster_name: ManagementCluster
+    infra_dv_switch: vDS
     tenant_dv_switch: MgmtTenant
     infra_num_uplink_ports: 1
     tenant_num_uplink_ports: 1
@@ -94,6 +97,8 @@ management:
     witness_vm_name: mgmtvc-Witness
     subnet_mask: 255.255.255.0
     gateway: 192.168.103.1
+
+## Configurations for C-Plane POD
 c_plane:
   datastore_type: vSAN
   host:
@@ -114,27 +119,27 @@ c_plane:
         vmotion_ip: 192.168.101.217
         vsan_ip: 192.168.102.217
     user: root
-    password: Vmware1!
+    password: VMware1!
     vmotion_mask: 255.255.255.0
     vsan_mask: 255.255.255.0
   vcenter:
     deployment_option: small
-    appliance_name: resvc.psolab.local
-    hostname: resvc.psolab.local
+    appliance_name: vcsa01
+    hostname: vcsa01.nfvlab.local
     name:
-    gateway: 192.168.100.1
-    ip_address: 192.168.100.218
+    gateway: 172.16.110.51
+    ip_address: 172.16.110.11
     ip_family: IPv4
     network_mode: static
     network_prefix: 24
-    root_password: Vmware1!
-    sso_password: Vmware1!
+    root_password: VMware1!
+    sso_password: VMware1!
     sso_domain: vsphere.local
-    user_name: Administrator@vsphere.local
-    dc_name: ResourceDC
-    cluster_name: ResourceCluster
-    infra_dv_switch: ResourceInfra
-    tenant_dv_switch: ResourceTenant
+    user_name: administrator@vsphere.local
+    dc_name: Datacenter
+    cluster_name: ManagementCluster
+    infra_dv_switch: VDS-01
+    tenant_dv_switch: VDS-01
     infra_num_uplink_ports: 1
     tenant_num_uplink_ports: 1
   portgroup:
@@ -174,7 +179,7 @@ c_plane:
         vmotion_ip: x.x.x.x
         vsan_ip: x.x.x.x
     user: root
-    password: Vmware12345!
+    password: VMware1!VMware1!
     vmotion_mask: 255.255.255.0
     vsan_mask: 255.255.255.0
     nic:
@@ -197,34 +202,34 @@ c_plane:
     tenant_num_uplink_ports: 1
   nsxt:
     edge_node_ip:
-        - edgenode1.psolab.local
-        - edgenode2.psolab.local
+        - nsxedge01.nfvlab.local
+        - nsxedge02.nfvlab.local
     bare_metal_edges:
       ip: 
         - nsxtedge1.psolab.local
         - nsxtedge2.psolab.local
       admin_user_name: admin
-      admin_password: Vmware12345!
+      admin_password: VMware1!VMware1!
     thumbprint: 
     ova_path: E:\\nsx-unified-appliance-3.0.0.0.0.15946739.ova
-    vm_name: nsxtmgr
-    root_password: VMware12345!
-    cli_password: VMware12345!
-    admin_password: VMware12345!
-    audit_password: VMware12345!
+    vm_name: nsxmgr02
+    root_password: VMware1!VMware1!
+    cli_password: VMware1!VMware1!
+    admin_password: VMware1!VMware1!
+    audit_password: VMware1!VMware1!
     admin_user_name: admin
     audit_user_name: audit
-    host_name: nsxtmgr
-    ip_address: 192.168.100.236
+    host_name: nsxmgr02.nfvlab.local
+    ip_address: 172.16.111.52
     net_mask: 255.255.255.0
-    gate_way: 192.168.100.1
+    gate_way: 172.16.111.254
     prefix: 24
     dep_size: small
     ip_type: IPv4
     license:
     role: NSX Manager
-    node01_ip_address: 192.168.100.237
-    node02_ip_address: 192.168.100.238
+    node01_ip_address: 172.16.111.54
+    node02_ip_address: 172.16.111.55
     form_factor: SMALL
     load_balancer_size: SMALL
     ip_pool:
@@ -283,44 +288,46 @@ c_plane:
     license_key:
   vio:
     ova_path: E:\\VIO-Appliance-7.0.0.0-16227912_OVF10.ova
-    domain_name: nfvraid.com
-    management_ip: x.x.x.x
+    domain_name: nfvlab.local
+    management_ip: 172.16.111.53
     net_mask: 255.255.255.0
-    gateway: x.x.x.x
+    gateway: 172.16.111.254
     ip_allocation_policy: fixedPolicy
-    user_password: Vmware1!
+    user_password: VMware1!
     ovf_tool_path: C:\\Program Files\\VMware\\VMware OVF Tool\\ovftool.exe
-    vm_name: VIOMGMT
-    user_name: viouser
-    root_password: Vmware1!
-    service_cidr: x.x.x.x/24
-    pod_cidr: x.x.x.x/24
+    vm_name: viomgr02
+    user_name: admin
+    root_password: VMware1!
+    service_cidr: 10.10.0.0/16
+    pod_cidr: 10.20.0.0/16
     service_domain: cluster.local
     chrome_driver_path: F:\\nfv3.2build\\powercliuiautomation\\
     webdriver_path: F:\\nfv3.2build\\powercliuiautomation\\WebDriver.dll
     resource_pool_name: RAIDVIOResourcePool
     mgmt_network:
       net_mask: 255.255.255.0
-      gateway: x.x.x.x
-      start_ip: x.x.x.x
-      end_ip: x.x.x.x
+      gateway: 172.16.111.254
+      start_ip: 172.16.111.56
+      end_ip: 172.16.111.60
     api_network:
       net_mask: 255.255.255.0
-      gateway: x.x.x.x
-      start_ip: x.x.x.x
-      end_ip: x.x.x.x
-    private_openstack_endpoint: x.x.x.x
-    public_openstack_endpoint: x.x.x.x
-    vio_public_ip: x.x.x.x
-    vio_admin_password: Vmware1!
+      gateway: 172.16.130.254
+      start_ip: 172.16.130.56
+      end_ip: 172.16.131.60
+    private_openstack_endpoint: 172.16.111.60
+    public_openstack_endpoint: 172.16.130.60
+    vio_public_ip: 172.16.130.60
+    vio_admin_password: VMware1!
     neutron_Type: NSX Policy
     nsxp:
-      default_tier0_router: RAID-TIER0
-      dhcp_profile: dhcp-server-profile-2
-      metadata_proxy: metadata-proxy-2
+      default_tier0_router: vio-tier-0
+      dhcp_profile: vio-dhcp-server-profile
+      metadata_proxy: vio-metadata-proxy
       metadata_proxy_shared_secret:  secret123
   vrni:
     ova_path: E:\\VMware-vRealize-Network-Insight-5.2.0.1585846638-platform.ova
     dep_size: medium
     vmname: VRNIPratform
+
+## Configurations for U-Plane POD
 u_plane:
