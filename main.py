@@ -162,169 +162,122 @@ def get_vio_configs(config):
 
 
 def get_vrni_configs(config):
-    for cfg in config:
-        VRNI_IPADDR = cfg['hostname']
-        VRNI_USERNAME = cfg['username']
-        VRNI_PASSWORD = cfg['password']
-        VRNI_DOMAIN = cfg['domain']
-        print('------ Starting config_dump for vRNI: {}'.format(VRNI_IPADDR))
-        vrni = VRni(ipaddress=VRNI_IPADDR, username=VRNI_USERNAME, password=VRNI_PASSWORD, domain=VRNI_DOMAIN)
-        version_info = vrni.get('/api/ni/info/version')
-        nodes_info = vrni.get('/api/ni/infra/nodes')
-        # cluster_info = vrni.get('/api/ni/entities/clusters')
-        # host_info = vrni.get('/api/ni/entities/hosts')
+    cfg = config['vrni']
+    VRNI_IPADDR, VRNI_USERNAME, VRNI_PASSWORD = cfg['hostname'], cfg['user_name'], cfg['password']
+    VRNI_DOMAIN = cfg['domain']
 
-        print('>>> Version information')
-        print('API Version : {0}'.format(version_info['api_version']))
+    print('------ Starting config_dump for vRNI: {}'.format(VRNI_IPADDR))
+    vrni = VRni(ipaddress=VRNI_IPADDR, username=VRNI_USERNAME, password=VRNI_PASSWORD, domain=VRNI_DOMAIN)
+    version_info = vrni.get('/api/ni/info/version')
+    nodes_info = vrni.get('/api/ni/infra/nodes')
+    # cluster_info = vrni.get('/api/ni/entities/clusters')
+    # host_info = vrni.get('/api/ni/entities/hosts')
 
-        print('>>> Nodes information')
-        # Fetch all node ids configured
-        # print(vrni_nodes)
-        ni_node_ids = [i['id'] for i in nodes_info['results']]
-        for node_id in ni_node_ids:
-            node = vrni.get('/api/ni/infra/nodes/{}'.format(node_id))
-            print('Node ID: {0} (internal: {1})'.format(node['id'], node['node_id']))
-            print('IP Address: {}'.format(node['ip_address']))
-            print('Deployment Role: {}'.format(node['node_type']))
+    print('>>> Version information')
+    print('API Version : {0}'.format(version_info['api_version']))
+    print()
 
-        # print(cluster_info)
-        # print(host_info)
-
-        # user_groups = vrni.get('/api/ni/settings/user-groups')
-        # print(user_groups)
-
-        # snmp_info = vrni.get('/api/ni/settings/snmp/profiles')
-        # print(snmp_info)
+    print('>>> Nodes information')
+    # Fetch all node ids configured
+    ni_node_ids = [i['id'] for i in nodes_info['results']]
+    for node_id in ni_node_ids:
+        node = vrni.get('/api/ni/infra/nodes/{}'.format(node_id))
+        print('Node ID: {0} (internal: {1})'.format(node['id'], node['node_id']))
+        print('IP Address: {}'.format(node['ip_address']))
+        print('Deployment Role: {}'.format(node['node_type']))
 
     # TODO: Return JSON value with parsed
     return None
 
 
 def get_vrli_configs(config):
-    for cfg in config:
-        VRLI_IPADDR = cfg['hostname']
-        VRLI_USERNAME = cfg['username']
-        VRLI_PASSWORD = cfg['password']
-        VRLI_PROVIDER = cfg['provider']
-        print('------ Starting config_dump for vRLI: {}'.format(VRLI_IPADDR))
-        vrli = VRli(ipaddress=VRLI_IPADDR, username=VRLI_USERNAME, password=VRLI_PASSWORD, provider=VRLI_PROVIDER)
-        version_info = vrli.get('/api/v1/version')
-        cluster_info = vrli.get('/api/v1/cluster/vips')
-        node_info = vrli.get('/api/v1/cluster/nodes')
-        ntp_info = vrli.get('/api/v1/time/config')
-        cp_info = vrli.get('/api/v1/content/contentpack/list')
-        vsphere_info = vrli.get('/api/v1/vsphere')
-        vrops_info = vrli.get('/api/v1/vrops')
-        smtp_info = vrli.get('/api/v1/notification/channels')
-        ad_info = vrli.get('/api/v1/ad')
-        vidm_status = vrli.get('/api/v1/vidm/status')
-        vidms = vrli.get('/api/v1/vidm')
+    cfg = config['vrli']
+    VRLI_IPADDR, VRLI_USERNAME, VRLI_PASSWORD = cfg['vip_address'], cfg['user_name'], cfg['password']
+    VRLI_PROVIDER = 'Local'
 
-        print('>>> Version information')
-        print('{0} (Release Type: {1})'.format(version_info['version'], version_info['releaseName']))
-        print()
+    print('------ Starting config_dump for vRLI: {}'.format(VRLI_IPADDR))
+    vrli = VRli(ipaddress=VRLI_IPADDR, username=VRLI_USERNAME, password=VRLI_PASSWORD, provider=VRLI_PROVIDER)
+    version_info = vrli.get('/api/v1/version')
+    cluster_info = vrli.get('/api/v1/cluster/vips')
+    node_info = vrli.get('/api/v1/cluster/nodes')
+    ntp_info = vrli.get('/api/v1/time/config')
+    cp_info = vrli.get('/api/v1/content/contentpack/list')
+    vsphere_info = vrli.get('/api/v1/vsphere')
+    vrops_info = vrli.get('/api/v1/vrops')
+    smtp_info = vrli.get('/api/v1/notification/channels')
+    ad_info = vrli.get('/api/v1/ad')
+    vidm_status = vrli.get('/api/v1/vidm/status')
+    vidms = vrli.get('/api/v1/vidm')
 
-        print('>>> Cluster configurations ...')
-        print('> vIP : {0} (FQDN : {1})'.format(cluster_info['vips'][0]['ipAddress'], cluster_info['vips'][0]['fqdn']))
-        print('> proxy-node')
-        for node in node_info['nodes']:
-            print('Node ID: {}'.format(node['id']))
-            print('IP Address: {}'.format(node['ip']))
-            print('Subnet: {}'.format(node['netmask']))
-            print('Gateway: {}'.format(node['gateway']))
-            print('DNS Server: {}'.format(node['dnsServers']))
-        print('NTP Servers : {}'.format(ntp_info['ntpConfig']['ntpServers']))
-        print()
+    print('>>> Version information')
+    print('{0} (Release Type: {1})'.format(version_info['version'], version_info['releaseName']))
+    print()
 
-        print('>>> Content Pack configured ...')
-        for cp in cp_info['contentPackMetadataList']:
-            print('{0} (formatVersion: {1}, contentVersion: {2})'.format(cp['name'], cp['formatVersion'], cp['contentVersion']))
-        print('>>> Products integrated')
-        # vrli_vsphere = vrli_api.get('/api/v1/vsphere/{}'.format('vcsa02.nfvlab.local'))
-        print(vsphere_info)
-        print(vrops_info)
+    print('>>> Deployment configurations ...')
+    print('> vIP : {0} (FQDN : {1})'.format(cluster_info['vips'][0]['ipAddress'], cluster_info['vips'][0]['fqdn']))
+    print()
+    print('> proxy-node')
+    for node in node_info['nodes']:
+        print('Node ID: {}'.format(node['id']))
+        print('IP Address: {}'.format(node['ip']))
+        print('Subnet: {}'.format(node['netmask']))
+        print('Gateway: {}'.format(node['gateway']))
+        print('DNS Server: {}'.format(node['dnsServers']))
+    print('NTP Servers : {}'.format(ntp_info['ntpConfig']['ntpServers']))
+    print()
 
-        print('>>> SMTP Configurations ...')
-        print(smtp_info)
-
-        print('>>> Authentication source configurations ...')
-        print('>>>>>> Active Directories')
-        print(ad_info)
-        print('>>>>>> vIDM')
-        print('Status: {}'.format(vidm_status['state']))
-        print(json.dumps(vidms, indent=3, separators=(',', ': ')))
-        print()
+    print('>>> Content Pack configured ...')
+    for cp in cp_info['contentPackMetadataList']:
+        print('{0} (formatVersion: {1}, contentVersion: {2})'.format(cp['name'], cp['formatVersion'], cp['contentVersion']))
 
     # TODO: Should be return JSON value simplified
     return None
 
 
 def get_vrops_configs(config):
-    for cfg in config:
-        VROPS_IPADDR = cfg['hostname']
-        VROPS_USERNAME = cfg['username']
-        VROPS_PASSWORD = cfg['password']
-        print('------ Starting config_dump for vROps: {}'.format(VROPS_IPADDR))
-        # Instanciate vROps class
-        vrops = VROps(ipaddress=VROPS_IPADDR, username=VROPS_USERNAME, password=VROPS_PASSWORD)
+    cfg = config['vrops']
+    VROPS_IPADDR, VROPS_USERNAME, VROPS_PASSWORD = cfg['master_node_ip'], cfg['node_user_name'], cfg['node_admin_password']
 
-        # Fetch all info from CaSA API
-        cluster_conf = vrops.casa_get('/casa/cluster/config')
-        ip_conf = vrops.casa_get('/casa/node/status')
-        # Fetch all info from Suite API
-        versions = vrops.get('/suite-api/api/versions/current')
-        auth_sources = vrops.get('/suite-api/api/auth/sources')
-        mp_info = vrops.get('/suite-api/api/solutions')
-        adapter_info = vrops.get('/suite-api/api/adapters')
-        snmp_info = vrops.get('/suite-api/api/alertplugins')
+    print('------ Starting config_dump for vROps: {}'.format(VROPS_IPADDR))
+    # Instanciate vROps class
+    vrops = VROps(ipaddress=VROPS_IPADDR, username=VROPS_USERNAME, password=VROPS_PASSWORD)
 
-        print('>>> Version information')
-        print('{}'.format(versions['releaseName']))
-        print('Release Date: {}'.format(versions['humanlyReadableReleaseDate']))
+    # Fetch all info from CaSA API
+    cluster_conf = vrops.casa_get('/casa/cluster/config')
+    ip_conf = vrops.casa_get('/casa/node/status')
+    # Fetch all info from Suite API
+    versions = vrops.get('/suite-api/api/versions/current')
+    auth_sources = vrops.get('/suite-api/api/auth/sources')
+    mp_info = vrops.get('/suite-api/api/solutions')
+    adapter_info = vrops.get('/suite-api/api/adapters')
+    snmp_info = vrops.get('/suite-api/api/alertplugins')
 
-        print('>>> Cluster configurations')
-        for node in cluster_conf['slices']:
-            print('Node: {}'.format(node['node_name']))
-            print('IP Address: \t{}'.format(ip_conf['address']))
-            print('Deployment Role: {}'.format(node['node_type']))
-            # print('IP Address: {}'.format(node['']))
-            print('Netmask: {}'.format(node['network_properties']['network1_netmask']))
-            print('Gateway: {}'.format(node['network_properties']['default_gateway']))
-            print('DNS Servers: \t{}'.format(node['network_properties']['domain_name_servers']))
-            print('Domain Name: \t{}'.format(node['network_properties']['domain_name']))
-            print('NTP Servers: \t{}'.format(node['ntp_servers']))
-            print()
+    print('>>> Version information')
+    print('{}'.format(versions['releaseName']))
+    print('Release Date: {}'.format(versions['humanlyReadableReleaseDate']))
 
+    print('>>> Cluster configurations')
+    for node in cluster_conf['slices']:
+        print('Node: {}'.format(node['node_name']))
+        print('IP Address: \t{}'.format(ip_conf['address']))
+        print('Deployment Role: {}'.format(node['node_type']))
+        # print('IP Address: {}'.format(node['']))
+        print('Netmask: {}'.format(node['network_properties']['network1_netmask']))
+        print('Gateway: {}'.format(node['network_properties']['default_gateway']))
+        print('DNS Servers: \t{}'.format(node['network_properties']['domain_name_servers']))
+        print('Domain Name: \t{}'.format(node['network_properties']['domain_name']))
+        print('NTP Servers: \t{}'.format(node['ntp_servers']))
         print()
-        print('>>> Authentication sources')
-        auth_src_ids = [i['id'] for i in auth_sources['sources']]
-        for auth_src_id in auth_src_ids:
-            auth_detail = vrops.get('/suite-api/api/auth/sources/{}'.format(auth_src_id))
-            auth_name = auth_detail.get('name', None)
-            if auth_name is not None:
-                print('>>>>>> {}'.format(auth_name))
-                print('Source ID: {}'.format(auth_src_id))
-                print('Type: {}'.format(auth_detail['sourceType']['id']))
 
-        print('>>> Installed Management Packs')
-        for mp in mp_info['solution']:
-            print('{0} (Version : {1})'.format(mp['name'], mp['version']))
+    print('>>> Installed Management Packs')
+    for mp in mp_info['solution']:
+        print('{0} (Version : {1})'.format(mp['name'], mp['version']))
 
-        print('>>> Configured Adapters')
-        for adapter in adapter_info['adapterInstancesInfoDto']:
-            print('ID: {0}, Name: {1}'.format(adapter['id'], adapter['resourceKey']['name']))
+    print()
 
-        # TODO: handle stdout whether Tranp configured or not
-        print('>>> SNMP Configurations')
-        vrops_snmp_config = {}
-        for snmp in snmp_info['notificationPluginInstances']:
-            if snmp['pluginTypeId'] == 'SNMP Trap':
-                vrops_snmp_config = snmp['configValues']
-        if vrops_snmp_config is not {}:
-            for s in vrops_snmp_config:
-                print(s)
-
-        print()
+    print('>>> Configured Adapters')
+    for adapter in adapter_info['adapterInstancesInfoDto']:
+        print('ID: {0}, Name: {1}'.format(adapter['id'], adapter['resourceKey']['name']))
 
     # TODO: Should be return JSON value simplified
     return None
@@ -357,22 +310,18 @@ if __name__ == "__main__":
     print('--------------------------------------------------------------------')
     print('### C-Plane VMware Integrated OpenStack')
     vio_configs = get_vio_configs(config=configs.get('c_plane'))
-    sys.exit(1)
     print()
     print('--------------------------------------------------------------------')
-    print('### vRealize Operations Manager')
-    print()
-    vrops_configs = get_vrops_configs(config=configs.get('vrops'))
-    print()
-    print('--------------------------------------------------------------------')
-    print('### vRealize Log Insight')
-    print()
-    vrli_configs = get_vrli_configs(config=configs.get('vrli'))
+    print('### C-Plane vRealize Operations Manager')
+    vrops_configs = get_vrops_configs(config=configs.get('c_plane'))
     print()
     print('--------------------------------------------------------------------')
-    print('### vRealize Network Insight')
+    print('### C-Plane vRealize Log Insight')
+    vrli_configs = get_vrli_configs(config=configs.get('c_plane'))
     print()
-    vrni_configs = get_vrni_configs(config=configs.get('vrni'))
+    print('--------------------------------------------------------------------')
+    print('### C-Plane vRealize Network Insight')
+    vrni_configs = get_vrni_configs(config=configs.get('c_plane'))
     print()
     print('--------------------------------------------------------------------')
     print()

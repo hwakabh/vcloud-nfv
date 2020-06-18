@@ -248,42 +248,43 @@ c_plane:
       type: VLAN
   vrli:
     node_ova_path: E:\\VMware-vRealize-Log-Insight-8.1.1.0-16281169_OVF10.ova
-    node_ip_address: 192.168.100.231
-    node_vm_name: vrli1.psolab.local
-    node_domain_name: vrli1.psolab.local
+    node_ip_address: 172.16.111.20
+    node_vm_name: vrli02.nfvlab.local
+    node_domain_name: vrli02.nfvlab.local
     node_net_mask: 255.255.255.0
-    node_gate_way: 192.168.100.1
+    node_gate_way: 172.16.111.254
     node_deployment_option: xsmall
     node_ip_type: IPv4
-    node_root_password: Vmware1!
+    node_root_password: VMware1!
     license:
     user_name: admin
+    password: VMware1!    ## Seem to be required to password for login vIP
     emailid: admin@nfvra.com
-    vip_address: 172.16.10.84
-    vip_fqdn: lax01vrli01vip.nfvraid.com
+    vip_address: 172.16.111.19
+    vip_fqdn: vrli.nfvlab.local
     content_pack_location: E:\\builds\\3.1OSE\\ContentPack
     worker_node:
-      - ip_address: 192.168.100.232
-        vm_name: vrli2.psolab.local
-        domain_name: vrli2.psolab.local
-      - ip_address: 192.168.100.233
-        vm_name: vrli3.psolab.local
-        domain_name: vrli3.psolab.local
+      - ip_address: 172.16.111.20
+        vm_name: vrli02
+        domain_name: vrli02.nfvlab.local
+      # - ip_address: 192.168.100.233
+      #   vm_name: vrli3.psolab.local
+      #   domain_name: vrli3.psolab.local
   vrops:
     ova_path: E:\\vRealize-Operations-Manager-Appliance-8.1.0.15972145_OVF10.ova
-    master_node_vm_name: vropsmaster
-    replica_node_vm_name: vropsreplica
+    master_node_vm_name: vrops02-a
+    replica_node_vm_name: vrops02-b
     data_node_vm_name: vropsdata
     master_deployment_size: xsmall
-    master_node_ip: 192.168.100.224
-    replica_node_ip: 192.168.100.225
+    master_node_ip: 172.16.111.30
+    replica_node_ip: 172.16.111.31
     data_node_ip:
-      - 192.168.100.226
-    node_gateway: 192.168.100.1
+      - 172.16.111.32
+    node_gateway: 172.16.111.254
     node_net_mask: 255.255.255.0
     node_ip_type: IPv4
     node_time: Etc/UTC
-    node_admin_password: Vmware1!
+    node_admin_password: VMware1!
     node_user_name: admin
     license_key:
   vio:
@@ -327,7 +328,15 @@ c_plane:
   vrni:
     ova_path: E:\\VMware-vRealize-Network-Insight-5.2.0.1585846638-platform.ova
     dep_size: medium
-    vmname: VRNIPratform
+    vmname: vrni02
+    # Added to fetch config
+    hostname: vrni02.nfvlab.local
+    ip_address: 172.16.111.21
+    user_name: admin@local
+    password: VMware1!
+    domain: LOCAL
+    proxy_nodes:
+      - vrni02-proxy.nfvlab.local
 
 ## Configurations for U-Plane POD
 u_plane:
