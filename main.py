@@ -104,9 +104,27 @@ def get_nsxt_configs(config):
 
     print('------ Starting config_dump for NSX-T Manager: {}'.format(NSX_MGR))
     nsx = Nsxt(ipaddress=NSX_MGR, username=NSX_USERNAME, password=NSX_PASSWORD)
-    # Fetch only management network information
-    print('>>> Management Network information ...')
+    vip = nsx.get('/api/v1/cluster/api-virtual-ip')
+    cluster = nsx.get('/api/v1/cluster')
+    hostname = nsx.get('/api/v1/node')
     mgmt_networks = nsx.get('/api/v1/node/network/interfaces')
+    dns = nsx.get('/api/v1/node/network/name-servers')
+    domains = nsx.get('/api/v1/node/network/search-domains')
+    ntp = nsx.get('/api/v1/node/services/ntp')
+    ssh = nsx.get('/api/v1/node/services/ssh')
+    edge_cluster = nsx.get('/api/v1/edge-clusters')
+    edge_nodes = nsx.get('/api/v1/edge-clusters/{}/allocation-status'.format(edge_cluster['results'][0]['id']))
+    transport_zones = nsx.get('/api/v1/transport-zones')
+    host_transport_nodes = nsx.get('/api/v1/transport-nodes?node_types=HostNode')
+    edge_transport_nodes = nsx.get('/api/v1/transport-nodes?node_types=EdgeNode')
+
+    print('>>> Version information')
+    print('Product Version: \t{}'.format(hostname['product_version']))
+    print('Kernel Version: \t{}'.format(hostname['kernel_version']))
+    print()
+
+    # Fetch only management network information
+    print('>>> Management Network information')
     for net in mgmt_networks['results']:
         print('Interface: \t{0} (Physical Address: {1})'.format(net['interface_id'], net['physical_address']))
         print('IP Address: \t{}'.format(net['ip_addresses'][0]['ip_address']))
@@ -116,13 +134,69 @@ def get_nsxt_configs(config):
         print('MTU: \t\t{}'.format(net['mtu']))
         print()
 
-    hostname = nsx.get('/api/v1/node')
-    dns = nsx.get('/api/v1/node/network/name-servers')
-    ntp = nsx.get('/api/v1/node/services/ntp')
+    print('>>> Cluster-wide information')
+    print('vIP: \t\t\t{}'.format(vip['ip_address']))
+    print('Cluster UUID: \t\t{}'.format(cluster['cluster_id']))
+    print('DNS Servers: \t\t{}'.format(dns['name_servers']))
+    print('DNS Search Path: \t{}'.format(domains['search_domains']))
+    print('NTP Servers: \t\t{}'.format(ntp['service_properties']['servers']))
+    print('SSH auto start: \t{}'.format(ssh['service_properties']['start_on_boot']))
+    print()
 
-    print('Hostname: \t{}'.format(hostname['fully_qualified_domain_name']))
-    print('DNS Servers: \t{}'.format(dns['name_servers']))
-    print('NTP Servers: \t{}'.format(ntp['service_properties']['servers']))
+    print('>>> Mangement Cluster')
+    for i, node in enumerate(cluster['nodes']):
+        print('Node-{0} FQDN: \t{1}'.format(i+1, node['fqdn']))
+        print('UUID: \t\t{}'.format(node['node_uuid']))
+        print('IP Address: \t{}'.format(node['entities'][0]['ip_address']))
+        print()
+
+    print('>>> Edge Cluster information')
+    print('Name: \t{}'.format(edge_cluster['results'][0]['display_name']))
+    print('ID: \t{}'.format(edge_cluster['results'][0]['id']))
+    print()
+    print('>>> Edge Nodes')
+    for edge_node in edge_nodes['members']:
+        print('Name: \t{}'.format(edge_node['node_display_name']))
+        print('UUID: \t{}'.format(edge_node['node_id']))
+        print()
+
+    print('>>> Transport-Zone information')
+    overlay_tzs = [otz for otz in transport_zones['results'] if otz['transport_type'] == 'OVERLAY']
+    print('>>>>>> Overlay transport-zones')
+    for overlay_tz in overlay_tzs:
+        print('Name: \t\t{}'.format(overlay_tz['display_name']))
+        print('UUID: \t\t{}'.format(overlay_tz['id']))
+        print('N-vDS Mode: \t{}'.format(overlay_tz['host_switch_mode']))
+        print()
+
+    vlan_tzs = [vtz for vtz in transport_zones['results'] if vtz['transport_type'] == 'VLAN']
+    print('>>>>>> VLAN transport-zones')
+    for vlan_tz in vlan_tzs:
+        print('Name: \t\t{}'.format(vlan_tz['display_name']))
+        print('UUID: \t\t{}'.format(vlan_tz['id']))
+        print('N-vDS Mode: \t{}'.format(vlan_tz['host_switch_mode']))
+        print()
+
+    print('>>> Transport Nodes information')
+    print('>>>>> Host transport-nodes')
+    for htn in host_transport_nodes['results']:
+        print('Name: \t\t{}'.format(htn['display_name']))
+        print('UUID: \t\t{}'.format(htn['id']))
+        print('OS Type: \t{}'.format(htn['node_deployment_info']['os_type']))
+        print('IP Address: \t{}'.format(htn['node_deployment_info']['ip_addresses'][0]))
+        print('N-vDS Name: \t{}'.format(htn['host_switch_spec']['host_switches'][0]['host_switch_name']))
+        print()
+    print('>>>>>> Edge transport-nodes')
+    for etn in edge_transport_nodes['results']:
+        print('Name: \t\t\t{}'.format(etn['display_name']))
+        print('UUID: \t\t\t{}'.format(etn['id']))
+        print('Deployment Type: \t{}'.format(etn['node_deployment_info']['deployment_type']))
+        print('Form Factor: \t\t{}'.format(etn['node_deployment_info']['deployment_config']['form_factor']))
+        print('IP Address: \t\t{}'.format(etn['node_deployment_info']['ip_addresses'][0]))
+        print('FQDN: \t\t\t{}'.format(etn['node_deployment_info']['node_settings']['hostname']))
+
+        print('N-vDS Name: \t\t{}'.format(etn['host_switch_spec']['host_switches'][0]['host_switch_name']))
+        print()
 
     # Return JSON value with parsed
     return None
