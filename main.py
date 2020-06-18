@@ -104,6 +104,7 @@ def get_nsxt_configs(config):
 
     print('------ Starting config_dump for NSX-T Manager: {}'.format(NSX_MGR))
     nsx = Nsxt(ipaddress=NSX_MGR, username=NSX_USERNAME, password=NSX_PASSWORD)
+    # Call v3 API for fetching configs
     vip = nsx.get('/api/v1/cluster/api-virtual-ip')
     cluster = nsx.get('/api/v1/cluster')
     hostname = nsx.get('/api/v1/node')
@@ -117,6 +118,12 @@ def get_nsxt_configs(config):
     transport_zones = nsx.get('/api/v1/transport-zones')
     host_transport_nodes = nsx.get('/api/v1/transport-nodes?node_types=HostNode')
     edge_transport_nodes = nsx.get('/api/v1/transport-nodes?node_types=EdgeNode')
+    ip_pools = nsx.get('/api/v1/pools/ip-pools')
+
+    # Call Policy API for retrieving configs
+    tier_0s = nsx.get('/policy/api/v1/infra/tier-0s')
+    dhcp_servers = nsx.get('/policy/api/v1/infra/dhcp-server-configs')
+    mk_proxies = nsx.get('/policy/api/v1/infra/metadata-proxies')
 
     print('>>> Version information')
     print('Product Version: \t{}'.format(hostname['product_version']))
@@ -196,6 +203,42 @@ def get_nsxt_configs(config):
         print('FQDN: \t\t\t{}'.format(etn['node_deployment_info']['node_settings']['hostname']))
 
         print('N-vDS Name: \t\t{}'.format(etn['host_switch_spec']['host_switches'][0]['host_switch_name']))
+        print()
+
+    print('>>> IP Pool information')
+    for pool in ip_pools['results']:
+        print('Name: {}'.format(pool['display_name']))
+        print('UUID: {}'.format(pool['id']))
+        print('Subnets:')
+        for subnet in pool['subnets']:
+            print('  CIDR={0}, Range=[ {1} - {2} ]'.format(subnet['cidr'], subnet['allocation_ranges'][0]['start'], subnet['allocation_ranges'][0]['end']))
+        print('Usage: total={0}, allocated={1}, free={2}'.format(pool['pool_usage']['total_ids'], pool['pool_usage']['allocated_ids'], pool['pool_usage']['free_ids']))
+        print()
+
+    print('>>> Tier-0 Routers')
+    for tier_0 in tier_0s['results']:
+        print('Name: \t\t{}'.format(tier_0['display_name']))
+        print('UUID: \t\t{}'.format(tier_0['unique_id']))
+        print('HA Mode: \t{}'.format(tier_0['ha_mode']))
+        print('Failover Mode: \t{}'.format(tier_0['failover_mode']))
+        print()
+
+    print('>>> DHCP Server Profiles')
+    for dhcp_server in dhcp_servers['results']:
+        print('Name: \t\t\t{}'.format(dhcp_server['display_name']))
+        print('UUID: \t\t\t{}'.format(dhcp_server['unique_id']))
+        print('Server Address: \t{}'.format(dhcp_server['server_address']))
+        # TODO: Resolve with edge-cluster name by URI path
+        print('Edge Cluster: \t\t{}'.format(dhcp_server['edge_cluster_path']))
+        print()
+
+    print('>>> Metadata Proxies')
+    for mk_proxy in mk_proxies['results']:
+        print('Name: \t\t\t{}'.format(mk_proxy['display_name']))
+        print('UUID: \t\t\t{}'.format(mk_proxy['unique_id']))
+        print('Server Address: \t{}'.format(mk_proxy['server_address']))
+        # TODO: Resolve with edge-cluster name by URI path
+        print('Edge Cluster: \t\t{}'.format(mk_proxy['edge_cluster_path']))
         print()
 
     # Return JSON value with parsed
