@@ -342,7 +342,7 @@ def get_vrops_configs(config):
 
 if __name__ == "__main__":
 
-    CONFIG_FILE_PATH = './config.yaml'
+    CONFIG_FILE_PATH = './InputFile-NFVStack.yaml'
     if os.path.exists(CONFIG_FILE_PATH):
         print('>>> Loading input parameter file : [ {} ]'.format(CONFIG_FILE_PATH))
         configs = read_config_from_file(conf_file_path=CONFIG_FILE_PATH)
