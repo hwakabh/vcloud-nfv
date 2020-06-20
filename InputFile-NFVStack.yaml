@@ -220,7 +220,7 @@ c_plane:
     admin_user_name: admin
     audit_user_name: audit
     host_name: nsxmgr02.nfvlab.local
-    ip_address: 172.16.111.52
+    ip_address: 172.16.111.61
     net_mask: 255.255.255.0
     gate_way: 172.16.111.254
     prefix: 24
@@ -228,14 +228,15 @@ c_plane:
     ip_type: IPv4
     license:
     role: NSX Manager
-    node01_ip_address: 172.16.111.54
-    node02_ip_address: 172.16.111.55
+    node01_ip_address: 172.16.111.52
+    node02_ip_address: 172.16.111.62
+    node03_ip_address: 172.16.111.72
     form_factor: SMALL
     load_balancer_size: SMALL
     ip_pool:
-      start_address: 172.16.10.70
-      end_address: 172.16.10.80
-      cidr: 172.16.10.0/24
+      start_address: 172.16.140.105
+      end_address: 172.16.140.120
+      cidr: 172.16.140.0/24
     overlay_transport_zone:
       display_name: lax01-r-std-overlay
       host_switch_name: lax01-r-overlay-hostswitch

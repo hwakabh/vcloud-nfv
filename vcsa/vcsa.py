@@ -64,6 +64,13 @@ class VApi():
         host_view.Destroy()
         return hostlist
 
+    def get_dvs_objects(self):
+        ret = self._establish_session()
+        dvs_view = ret.viewManager.CreateContainerView(ret.rootFolder,[vim.DistributedVirtualSwitch], True)
+        dvslist = [dvs for dvs in dvs_view.view]
+        dvs_view.Destroy()
+        return dvslist
+
 
 class EsxiSoapParser():
     def __init__(self):

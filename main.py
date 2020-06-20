@@ -35,6 +35,9 @@ def get_vcenter_configs(config):
 
     # Call vAPI to get ESXi host configs
     vapi = VApi(ipaddress=IPADDRESS, username=USERNAME, password=PASSWORD)
+    # Retrieve all hostdata prior to compare with response of vSphere REST-API
+    esxis = vapi.get_host_objects()
+    vds_configs = vapi.get_dvs_objects()
 
     print('>>> Appliance configurations ...')
     print('IP address: \t{}'.format(vcsa_networks['value'][0]['ipv4']['address']))
@@ -51,8 +54,6 @@ def get_vcenter_configs(config):
 
     print()
 
-    # Retrieve all hostdata prior to compare with response of vSphere REST-API
-    esxis = vapi.get_host_objects()
     for dc in vcsa_dc['value']:
         print('>>> Datacenter: {}'.format(dc['name']))
     for cluster in vcsa_clusters['value']:
@@ -90,9 +91,26 @@ def get_vcenter_configs(config):
             for pg in host_portgroups:
                 print('\t[ {0} ] VLAN={1}, vSwitchName={2}'.format(pg['name'], pg['vlanId'], pg['vswitchName']))
 
-            # print(json.dumps(host_info, indent=3, separators=(',', ': ')))
-            # print('>>>>>>>>> [ {} ] SSH configurations'.format(host['name']))
             print('SSH service : {}'.format(esxi_parser.get_host_ssh_status(target_host)))
+            print()
+
+    print('>>> vDS Configs')
+    for dvs in vds_configs:
+        print('Name : {}'.format(dvs.name))
+        print('Configured hosts: ')
+        for member_host in dvs.config.host:
+            print('  {}'.format(member_host.config.host.name))
+        print('dvPortGroups: ')
+        for dvportgroup in dvs.config.uplinkPortgroup:
+            print('  {}'.format(dvportgroup.name))
+        print('Uplinks configured: ')
+        for uplink in dvs.config.uplinkPortPolicy.uplinkPortName:
+            print('  {}'.format(uplink))
+        print('Port Groups: ')
+        for pg in dvs.portgroup:
+            if type(pg.config.defaultPortConfig.vlan.vlanId) == int:
+                print('  {0} ( VLAN: {1} )'.format(pg.name, pg.config.defaultPortConfig.vlan.vlanId))
+        print()
 
     # TODO: Return JSON value with parsed
     return None
