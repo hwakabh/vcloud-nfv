@@ -94,7 +94,7 @@ def get_vcenter_configs(config):
             print('SSH service : {}'.format(esxi_parser.get_host_ssh_status(target_host)))
             print()
 
-    print('>>> vDS Configs')
+    print('>>> vDS configs')
     for dvs in vds_configs:
         print('Name : {}'.format(dvs.name))
         print('Configured hosts: ')
@@ -111,6 +111,23 @@ def get_vcenter_configs(config):
             if type(pg.config.defaultPortConfig.vlan.vlanId) == int:
                 print('  {0} ( VLAN: {1} )'.format(pg.name, pg.config.defaultPortConfig.vlan.vlanId))
         print()
+
+    print('>>> vSAN Cluster configs')
+    for vsan_host in esxis:
+        print('>>>>>> {}'.format(vsan_host.name))
+        print('Cluster UUID: {}'.format(vsan_host.configManager.vsanSystem.config.clusterInfo.uuid))
+        print('Node UUID: {}'.format(vsan_host.configManager.vsanSystem.config.clusterInfo.nodeUuid))
+        disk_config = vsan_host.config.vsanHostConfig.storageInfo.diskMapping
+        print('Disk Group: {}'.format(disk_config[0].ssd.vsanDiskInfo.vsanUuid))
+        for disk in disk_config:
+            print('Disk Claimed: ')
+            print('> Flash')
+            print('  {}'.format(disk.ssd.displayName))
+            print('> HDD')
+            for non_ssd in disk.nonSsd:
+                print('  {}'.format(non_ssd.displayName))
+        print()
+
 
     # TODO: Return JSON value with parsed
     return None
