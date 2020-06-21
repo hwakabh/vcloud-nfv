@@ -339,8 +339,8 @@ def get_vrni_configs(config):
     vrni = VRni(ipaddress=VRNI_IPADDR, username=VRNI_USERNAME, password=VRNI_PASSWORD, domain=VRNI_DOMAIN)
     version_info = vrni.get('/api/ni/info/version')
     nodes_info = vrni.get('/api/ni/infra/nodes')
-    # cluster_info = vrni.get('/api/ni/entities/clusters')
-    # host_info = vrni.get('/api/ni/entities/hosts')
+    ds_vcenter = vrni.get('/api/ni/data-sources/vcenters')
+    ds_nsxmgr = vrni.get('/api/ni/data-sources/nsxt-managers')
 
     print('>>> Version information')
     print('API Version : {0}'.format(version_info['api_version']))
@@ -354,6 +354,28 @@ def get_vrni_configs(config):
         print('Node ID: {0} (internal: {1})'.format(node['id'], node['node_id']))
         print('IP Address: {}'.format(node['ip_address']))
         print('Deployment Role: {}'.format(node['node_type']))
+    print()
+    print('>>> Data sources')
+    print('> vCenter Servers:')
+    vcenters = [vc['entity_id'] for vc in ds_vcenter['results']]
+    for vcenter in vcenters:
+        res_vc = vrni.get('/api/ni/data-sources/vcenters/{}'.format(vcenter))
+        print('Name : \t\t{0} (FQDN : {1})'.format(res_vc['nickname'], res_vc['fqdn']))
+        print('Username : \t{}'.format(res_vc['credentials']['username']))
+        print('EntityID : \t{}'.format(res_vc['entity_id']))
+        print('ProxyID : \t{}'.format(res_vc['proxy_id']))
+        print('Enabled : \t{}'.format(res_vc['enabled']))
+        print()
+    print('> NSX-T Managers:')
+    nsxmgrs = [nsxmgr['entity_id'] for nsxmgr in ds_nsxmgr['results']]
+    for nsx in nsxmgrs:
+        res_nsx = vrni.get('/api/ni/data-sources/nsxt-managers/{}'.format(nsx))
+        print('Name : \t\t{}'.format(res_nsx['nickname']))
+        print('Username : \t{}'.format(res_nsx['credentials']['username']))
+        print('EntityID : \t{}'.format(res_nsx['entity_id']))
+        print('ProxyID : \t{}'.format(res_nsx['proxy_id']))
+        print('Enabled : \t{}'.format(res_nsx['enabled']))
+        print()
 
     # TODO: Return JSON value with parsed
     return None
@@ -371,12 +393,6 @@ def get_vrli_configs(config):
     node_info = vrli.get('/api/v1/cluster/nodes')
     ntp_info = vrli.get('/api/v1/time/config')
     cp_info = vrli.get('/api/v1/content/contentpack/list')
-    vsphere_info = vrli.get('/api/v1/vsphere')
-    vrops_info = vrli.get('/api/v1/vrops')
-    smtp_info = vrli.get('/api/v1/notification/channels')
-    ad_info = vrli.get('/api/v1/ad')
-    vidm_status = vrli.get('/api/v1/vidm/status')
-    vidms = vrli.get('/api/v1/vidm')
 
     print('>>> Version information')
     print('{0} (Release Type: {1})'.format(version_info['version'], version_info['releaseName']))
@@ -385,7 +401,7 @@ def get_vrli_configs(config):
     print('>>> Deployment configurations ...')
     print('> vIP : {0} (FQDN : {1})'.format(cluster_info['vips'][0]['ipAddress'], cluster_info['vips'][0]['fqdn']))
     print()
-    print('> proxy-node')
+    print('> nodes')
     for node in node_info['nodes']:
         print('Node ID: {}'.format(node['id']))
         print('IP Address: {}'.format(node['ip']))
@@ -416,21 +432,19 @@ def get_vrops_configs(config):
     ip_conf = vrops.casa_get('/casa/node/status')
     # Fetch all info from Suite API
     versions = vrops.get('/suite-api/api/versions/current')
-    auth_sources = vrops.get('/suite-api/api/auth/sources')
     mp_info = vrops.get('/suite-api/api/solutions')
     adapter_info = vrops.get('/suite-api/api/adapters')
-    snmp_info = vrops.get('/suite-api/api/alertplugins')
 
     print('>>> Version information')
     print('{}'.format(versions['releaseName']))
     print('Release Date: {}'.format(versions['humanlyReadableReleaseDate']))
+    print()
 
     print('>>> Cluster configurations')
     for node in cluster_conf['slices']:
         print('Node: {}'.format(node['node_name']))
         print('IP Address: \t{}'.format(ip_conf['address']))
         print('Deployment Role: {}'.format(node['node_type']))
-        # print('IP Address: {}'.format(node['']))
         print('Netmask: {}'.format(node['network_properties']['network1_netmask']))
         print('Gateway: {}'.format(node['network_properties']['default_gateway']))
         print('DNS Servers: \t{}'.format(node['network_properties']['domain_name_servers']))
