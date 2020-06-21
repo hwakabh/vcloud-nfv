@@ -24,6 +24,7 @@ def get_vcenter_configs(config):
     print('------ Starting config_dump for vCSA: {}'.format(IPADDRESS))
     # Call vSphere REST-API to fetch vCSA config
     vc = VCenter(ipaddress=IPADDRESS, username=USERNAME, password=PASSWORD)
+    vcsa_version = vc.get('/rest/appliance/system/version')
     vcsa_networks = vc.get('/rest/appliance/networking/interfaces')
     vcsa_hostnames = vc.get('/rest/appliance/networking/dns/hostname')
     vcsa_dns = vc.get('/rest/appliance/networking/dns/servers')
@@ -33,6 +34,8 @@ def get_vcenter_configs(config):
     vcsa_dc = vc.get('/rest/vcenter/datacenter')
     vcsa_clusters = vc.get('/rest/vcenter/cluster')
 
+    vcsa_ha = vc.post('/rest/vcenter/vcha/cluster?action=get')
+
     # Call vAPI to get ESXi host configs
     vapi = VApi(ipaddress=IPADDRESS, username=USERNAME, password=PASSWORD)
     # Retrieve all hostdata prior to compare with response of vSphere REST-API
@@ -40,6 +43,7 @@ def get_vcenter_configs(config):
     vds_configs = vapi.get_dvs_objects()
 
     print('>>> Appliance configurations ...')
+    print('Version: \t{0} (Build : {1})'.format(vcsa_version['value']['version'], vcsa_version['value']['build']))
     print('IP address: \t{}'.format(vcsa_networks['value'][0]['ipv4']['address']))
     print('Subnet Prefix: \t{}'.format(vcsa_networks['value'][0]['ipv4']['prefix']))
     print('Gateway: \t{}'.format(vcsa_networks['value'][0]['ipv4']['default_gateway']))
@@ -49,7 +53,6 @@ def get_vcenter_configs(config):
     print('SSH Services: \t{}'.format('Running' if vcsa_ssh_status['value'] == True else 'Not Running'))
 
     print('>>> vCHA configurations ...')
-    vcsa_ha = vc.post('/rest/vcenter/vcha/cluster?action=get')
     print('Status : {}'.format(vcsa_ha['value']))
 
     print()
@@ -67,6 +70,9 @@ def get_vcenter_configs(config):
             host_info = dict()
             print('>>>>>>>>> {}'.format(host['name']))
             target_host = [esxi for esxi in esxis if esxi.name == host['name']][0]
+            version, build, apiversion = esxi_parser.get_host_system_version(target_host)
+            print('Host Version: {0} (Build {1})'.format(version, build))
+            print('API Version: {}'.format(apiversion))
             host_pnics = esxi_parser.get_host_pnics(target_host)
             host_vnics = esxi_parser.get_host_vnics(target_host)
             host_vswitches = esxi_parser.get_host_vswitches(target_host)
@@ -91,6 +97,17 @@ def get_vcenter_configs(config):
             for pg in host_portgroups:
                 print('\t[ {0} ] VLAN={1}, vSwitchName={2}'.format(pg['name'], pg['vlanId'], pg['vswitchName']))
 
+            nameservers, searchpath = esxi_parser.get_host_dns_config(target_host)
+            print('DNS Servers:')
+            for ns in nameservers:
+                print('  {}'.format(ns))
+            print('DNS Search Path:')
+            for sp in searchpath:
+                print('  {}'.format(sp))
+            ntp_severs = esxi_parser.get_host_ntp_config(target_host)
+            print('NTP servers:')
+            for ntp in ntp_severs:
+                print('  {}'.format(ntp))
             print('SSH service : {}'.format(esxi_parser.get_host_ssh_status(target_host)))
             print()
 

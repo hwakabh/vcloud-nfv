@@ -110,9 +110,7 @@ class EsxiSoapParser():
             for pg in vswitch.portgroup:
                 pg = pg.replace('key-vim.host.PortGroup-', '')
                 vswitch_portgroups.append(pg)
-            vswitch_info.update(
-                {'name': vswitch.name, 'pnics': vswitch_pnics,
-                'portgroups': vswitch_portgroups, 'mtu': vswitch.mtu})
+            vswitch_info.update({'name': vswitch.name, 'pnics': vswitch_pnics, 'portgroups': vswitch_portgroups, 'mtu': vswitch.mtu})
             host_vswitches.append(vswitch_info)
         return host_vswitches
 
@@ -135,3 +133,16 @@ class EsxiSoapParser():
         ssh_service = [s for s in services.serviceInfo.service if s.key == 'TSM-SSH'][0].running
         return 'Running' if ssh_service == True else 'Error'
 
+    def get_host_dns_config(self, host):
+        dns_config = host.configManager.networkSystem.dnsConfig
+        dns_servers = dns_config.address
+        dns_domains = dns_config.searchDomain
+        return dns_servers, dns_domains
+
+    def get_host_ntp_config(self, host):
+        ntp_config = host.configManager.dateTimeSystem.dateTimeInfo.ntpConfig.server
+        return ntp_config
+
+    def get_host_system_version(self, host):
+        versions = host.summary.config.product
+        return versions.version, versions.build, versions.apiVersion
