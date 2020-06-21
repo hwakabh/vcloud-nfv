@@ -460,7 +460,7 @@ if __name__ == "__main__":
         configs = read_config_from_file(conf_file_path=CONFIG_FILE_PATH)
     else:
         print('Provided configuration file path is wrong.')
-        print('Configuration file is expected to be allocated on ./config.yaml.')
+        print('Configuration file is expected to be allocated on: {} '.format(CONFIG_FILE_PATH))
         sys.exit(1)
 
     print('>>> Start collecting configurations, this might take some time ...')
