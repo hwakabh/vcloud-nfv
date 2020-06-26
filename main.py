@@ -53,7 +53,16 @@ def get_vcenter_configs(config):
     print('SSH Services: \t{}'.format('Running' if vcsa_ssh_status['value'] == True else 'Not Running'))
 
     print('>>> vCHA configurations ...')
-    print('Status : {}'.format(vcsa_ha['value']))
+    print('Mode : {}'.format(vcsa_ha['value']['mode']))
+    print('> Active vCSA:')
+    print('  IP Address: {}'.format(vcsa_ha['value']['node1']['ha_ip']['ipv4']['address']))
+    print('  Subnet: {}'.format(vcsa_ha['value']['node1']['ha_ip']['ipv4']['subnet_mask']))
+    print('> Passive vCSA:')
+    print('  IP Address: {}'.format(vcsa_ha['value']['node2']['ha_ip']['ipv4']['address']))
+    print('  Subnet: {}'.format(vcsa_ha['value']['node2']['ha_ip']['ipv4']['subnet_mask']))
+    print('> Witness:')
+    print('  IP Address: {}'.format(vcsa_ha['value']['witness']['ha_ip']['ipv4']['address']))
+    print('  Subnet: {}'.format(vcsa_ha['value']['witness']['ha_ip']['ipv4']['subnet_mask']))
 
     print()
 
