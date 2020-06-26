@@ -51,18 +51,16 @@ def get_vcenter_configs(config):
     print('DNS Servers: \t{}'.format(vcsa_dns['value']['servers']))
     print('NTP Servers: \t{}'.format(vcsa_ntp['value']))
     print('SSH Services: \t{}'.format('Running' if vcsa_ssh_status['value'] == True else 'Not Running'))
+    print()
 
     print('>>> vCHA configurations ...')
+    nodes = ['node1', 'node2', 'witness']
     print('Mode : {}'.format(vcsa_ha['value']['mode']))
-    print('> Active vCSA:')
-    print('  IP Address: {}'.format(vcsa_ha['value']['node1']['ha_ip']['ipv4']['address']))
-    print('  Subnet: {}'.format(vcsa_ha['value']['node1']['ha_ip']['ipv4']['subnet_mask']))
-    print('> Passive vCSA:')
-    print('  IP Address: {}'.format(vcsa_ha['value']['node2']['ha_ip']['ipv4']['address']))
-    print('  Subnet: {}'.format(vcsa_ha['value']['node2']['ha_ip']['ipv4']['subnet_mask']))
-    print('> Witness:')
-    print('  IP Address: {}'.format(vcsa_ha['value']['witness']['ha_ip']['ipv4']['address']))
-    print('  Subnet: {}'.format(vcsa_ha['value']['witness']['ha_ip']['ipv4']['subnet_mask']))
+    for node in nodes:
+        print('> vCHA: {}'.format(node))
+        print('  IP Address: {}'.format(vcsa_ha['value'][node]['ha_ip']['ipv4']['address']))
+        print('  Subnetk: {}'.format(vcsa_ha['value'][node]['ha_ip']['ipv4']['subnet_mask']))
+        print('  VM Name: {}'.format(vcsa_ha['value'][node]['runtime']['placement']['vm_name']))
 
     print()
 
