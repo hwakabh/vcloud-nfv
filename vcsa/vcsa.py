@@ -33,17 +33,20 @@ class VCenter():
             headers=self.headers,
             reqbody=''
         )
+        logger.debug(token)
         # Update headers
         self.headers['vmware-api-session-id'] = token.get('value')
     
     def get(self, urlsuffix):
         uri = '{0}{1}'.format(self.baseuri, urlsuffix)
         res = requests.get(uri, headers=self.headers, verify=False)
+        logger.debug(json.loads(res.text))
         return json.loads(res.text)
 
     def post(self, urlsuffix, headers=None, reqbody=None):
         uri = '{0}{1}'.format(self.baseuri, urlsuffix)
         res = requests.post(uri, auth=(self.username, self.password), headers=self.headers, data=reqbody, verify=False)
+        logger.debug(json.loads(res.text))
         return json.loads(res.text)
 
 
@@ -65,6 +68,7 @@ class VApi():
         ret = self._establish_session()
         host_view = ret.viewManager.CreateContainerView(ret.rootFolder,[vim.HostSystem], True)
         hostlist = [host for host in host_view.view]
+        logger.debug(host_view)
         host_view.Destroy()
         return hostlist
 
@@ -72,6 +76,7 @@ class VApi():
         ret = self._establish_session()
         dvs_view = ret.viewManager.CreateContainerView(ret.rootFolder,[vim.DistributedVirtualSwitch], True)
         dvslist = [dvs for dvs in dvs_view.view]
+        logger.debug(dvslist)
         dvs_view.Destroy()
         return dvslist
 

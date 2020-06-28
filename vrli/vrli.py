@@ -39,15 +39,18 @@ class VRli():
             headers=self.headers,
             reqbody=json.dumps(body)
         )
+        logger.debug(token)
         # Update headers
         self.headers['Authorization'] = 'Bearer {}'.format(token.get('sessionId'))
 
     def get(self, urisuffix):
         uri = '{0}{1}'.format(self.baseuri, urisuffix)
         res = requests.get(uri, headers=self.headers, verify=False)
+        logger.debug(json.loads(res.text))
         return json.loads(res.text)
 
     def post(self, urlsuffix, headers=None, reqbody=None):
         uri = '{0}{1}'.format(self.baseuri, urlsuffix)
         res = requests.post(uri, auth=(self.username, self.password), headers=self.headers, data=reqbody, verify=False)
+        logger.debug(json.loads(res.text))
         return json.loads(res.text)

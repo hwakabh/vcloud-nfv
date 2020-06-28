@@ -33,6 +33,7 @@ class VROps():
             headers=self.headers,
             reqbody=json.dumps(body)
         )
+        logger.debug(token)
         # Update headers
         self.headers['Authorization'] = 'vRealizeOpsToken {}'.format(token.get('token'))
 
