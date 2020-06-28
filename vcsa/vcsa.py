@@ -2,6 +2,10 @@ import requests
 import json
 import ssl
 import atexit
+
+import logging
+logger = logging.getLogger(__name__)
+
 import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 urllib3.disable_warnings(InsecureRequestWarning)

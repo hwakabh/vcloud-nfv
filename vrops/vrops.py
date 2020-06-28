@@ -1,5 +1,9 @@
 import requests
 import json
+
+import logging
+logger = logging.getLogger(__name__)
+
 import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 urllib3.disable_warnings(InsecureRequestWarning)
@@ -39,15 +43,18 @@ class VROps():
         }
         uri = '{0}{1}'.format(self.baseuri, urisuffix)
         res = requests.get(uri, headers=header, auth=(self.username, self.password), verify=False)
+        logger.debug(json.loads(res.text))
         return json.loads(res.text)
 
     def get(self, urisuffix):
         uri = '{0}{1}'.format(self.baseuri, urisuffix)
         res = requests.get(uri, headers=self.headers, verify=False)
+        logger.debug(json.loads(res.text))
         return json.loads(res.text)
 
     # POST for fetch suite-api token
     def post(self, urlsuffix, headers=None, reqbody=None):
         uri = '{0}{1}'.format(self.baseuri, urlsuffix)
         res = requests.post(uri, headers=self.headers, data=reqbody, verify=False)
+        logger.debug(json.loads(res.text))
         return json.loads(res.text)

@@ -1,5 +1,8 @@
 import requests
 import json
+import logging
+logger = logging.getLogger(__name__)
+
 import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 urllib3.disable_warnings(InsecureRequestWarning)
@@ -19,4 +22,5 @@ class Vio():
     def get(self, urisuffix):
         uri = '{0}{1}'.format(self.baseuri, urisuffix)
         res = requests.get(uri, headers=self.headers, auth=(self.username, self.password), verify=False)
+        logger.debug(json.loads(res.text))
         return json.loads(res.text)

@@ -2,6 +2,8 @@ import yaml
 import sys
 import os
 import json
+from datetime import datetime
+import logging
 
 from vcsa.vcsa import VCenter, VApi, EsxiSoapParser
 from nsxt.nsxt import Nsxt
@@ -21,7 +23,7 @@ def get_vcenter_configs(config):
     cfg = config['vcenter']
     IPADDRESS, USERNAME, PASSWORD = cfg['ip_address'], cfg['user_name'], cfg['sso_password']
 
-    print('------ Starting config_dump for vCSA: {}'.format(IPADDRESS))
+    logger.info('------ Starting config_dump for vCSA: {}'.format(IPADDRESS))
     # Call vSphere REST-API to fetch vCSA config
     vc = VCenter(ipaddress=IPADDRESS, username=USERNAME, password=PASSWORD)
     vcsa_version = vc.get('/rest/appliance/system/version')
@@ -42,44 +44,44 @@ def get_vcenter_configs(config):
     esxis = vapi.get_host_objects()
     vds_configs = vapi.get_dvs_objects()
 
-    print('>>> Appliance configurations ...')
-    print('Version: \t{0} (Build : {1})'.format(vcsa_version['value']['version'], vcsa_version['value']['build']))
-    print('IP address: \t{}'.format(vcsa_networks['value'][0]['ipv4']['address']))
-    print('Subnet Prefix: \t{}'.format(vcsa_networks['value'][0]['ipv4']['prefix']))
-    print('Gateway: \t{}'.format(vcsa_networks['value'][0]['ipv4']['default_gateway']))
-    print('Hostname: \t{}'.format(vcsa_hostnames['value']))
-    print('DNS Servers: \t{}'.format(vcsa_dns['value']['servers']))
-    print('NTP Servers: \t{}'.format(vcsa_ntp['value']))
-    print('SSH Services: \t{}'.format('Running' if vcsa_ssh_status['value'] == True else 'Not Running'))
-    print()
+    logger.info('>>> Appliance configurations ...')
+    logger.info('Version: \t{0} (Build : {1})'.format(vcsa_version['value']['version'], vcsa_version['value']['build']))
+    logger.info('IP address: \t{}'.format(vcsa_networks['value'][0]['ipv4']['address']))
+    logger.info('Subnet Prefix: \t{}'.format(vcsa_networks['value'][0]['ipv4']['prefix']))
+    logger.info('Gateway: \t{}'.format(vcsa_networks['value'][0]['ipv4']['default_gateway']))
+    logger.info('Hostname: \t{}'.format(vcsa_hostnames['value']))
+    logger.info('DNS Servers: \t{}'.format(vcsa_dns['value']['servers']))
+    logger.info('NTP Servers: \t{}'.format(vcsa_ntp['value']))
+    logger.info('SSH Services: \t{}'.format('Running' if vcsa_ssh_status['value'] == True else 'Not Running'))
+    logger.info('')
 
-    print('>>> vCHA configurations ...')
+    logger.info('>>> vCHA configurations ...')
     nodes = ['node1', 'node2', 'witness']
-    print('Mode : {}'.format(vcsa_ha['value']['mode']))
+    logger.info('Mode : {}'.format(vcsa_ha['value']['mode']))
     for node in nodes:
-        print('> vCHA: {}'.format(node))
-        print('  IP Address: {}'.format(vcsa_ha['value'][node]['ha_ip']['ipv4']['address']))
-        print('  Subnetk: {}'.format(vcsa_ha['value'][node]['ha_ip']['ipv4']['subnet_mask']))
-        print('  VM Name: {}'.format(vcsa_ha['value'][node]['runtime']['placement']['vm_name']))
+        logger.info('> vCHA: {}'.format(node))
+        logger.info('  IP Address: {}'.format(vcsa_ha['value'][node]['ha_ip']['ipv4']['address']))
+        logger.info('  Subnetk: {}'.format(vcsa_ha['value'][node]['ha_ip']['ipv4']['subnet_mask']))
+        logger.info('  VM Name: {}'.format(vcsa_ha['value'][node]['runtime']['placement']['vm_name']))
 
-    print()
+    logger.info('')
 
     for dc in vcsa_dc['value']:
-        print('>>> Datacenter: {}'.format(dc['name']))
+        logger.info('>>> Datacenter: {}'.format(dc['name']))
     for cluster in vcsa_clusters['value']:
-        print('>>> Cluster : {}'.format(cluster['name']))
-        print('DRS Enabled:\t{}'.format(cluster['drs_enabled']))
-        print('HA Enabled:\t{}'.format(cluster['ha_enabled']))
-        print('>>>>>> Managed ESXi Host configs')
+        logger.info('>>> Cluster : {}'.format(cluster['name']))
+        logger.info('DRS Enabled:\t{}'.format(cluster['drs_enabled']))
+        logger.info('HA Enabled:\t{}'.format(cluster['ha_enabled']))
+        logger.info('>>>>>> Managed ESXi Host configs')
         vcsa_hosts = vc.get('/rest/vcenter/host?filter.clusters={}'.format(cluster['cluster']))
         for host in vcsa_hosts['value']:
             esxi_parser = EsxiSoapParser()
             host_info = dict()
-            print('>>>>>>>>> {}'.format(host['name']))
+            logger.info('>>>>>>>>> {}'.format(host['name']))
             target_host = [esxi for esxi in esxis if esxi.name == host['name']][0]
             version, build, apiversion = esxi_parser.get_host_system_version(target_host)
-            print('Host Version: {0} (Build {1})'.format(version, build))
-            print('API Version: {}'.format(apiversion))
+            logger.info('Host Version: {0} (Build {1})'.format(version, build))
+            logger.info('API Version: {}'.format(apiversion))
             host_pnics = esxi_parser.get_host_pnics(target_host)
             host_vnics = esxi_parser.get_host_vnics(target_host)
             host_vswitches = esxi_parser.get_host_vswitches(target_host)
@@ -90,67 +92,67 @@ def get_vcenter_configs(config):
                 'portgroups': host_portgroups,
                 'vnics': host_vnics
             })
-            print('vmnics:')
+            logger.info('vmnics:')
             for vmnic in host_pnics:
-                print('\t[ {0} ] MAC addr= {1}, driver={2}'.format(vmnic['device'], vmnic['mac'], vmnic['driver']))
-            print('vmkernel ports:')
+                logger.info('\t[ {0} ] MAC addr= {1}, driver={2}'.format(vmnic['device'], vmnic['mac'], vmnic['driver']))
+            logger.info('vmkernel ports:')
             for vmk in host_vnics:
                 # TODO: merge info about vmk gateway
-                print('\t[ {0} ] IP Address= {1}, Subnet Mask={2}, MAC addr={3}, MTU={4}'.format(vmk['device'], vmk['ipAddress'], vmk['subnetMask'], vmk['mac'], vmk['mtu']))
-            print('vSwitch(vSS):')
+                logger.info('\t[ {0} ] IP Address= {1}, Subnet Mask={2}, MAC addr={3}, MTU={4}'.format(vmk['device'], vmk['ipAddress'], vmk['subnetMask'], vmk['mac'], vmk['mtu']))
+            logger.info('vSwitch(vSS):')
             for vss in host_vswitches:
-                print('\t[ {0} ] Uplinks={1}, PortGroups={2}, MTU={3}'.format(vss['name'], vss['pnics'], vss['portgroups'], vss['mtu']))
-            print('portgroups:')
+                logger.info('\t[ {0} ] Uplinks={1}, PortGroups={2}, MTU={3}'.format(vss['name'], vss['pnics'], vss['portgroups'], vss['mtu']))
+            logger.info('portgroups:')
             for pg in host_portgroups:
-                print('\t[ {0} ] VLAN={1}, vSwitchName={2}'.format(pg['name'], pg['vlanId'], pg['vswitchName']))
+                logger.info('\t[ {0} ] VLAN={1}, vSwitchName={2}'.format(pg['name'], pg['vlanId'], pg['vswitchName']))
 
             nameservers, searchpath = esxi_parser.get_host_dns_config(target_host)
-            print('DNS Servers:')
+            logger.info('DNS Servers:')
             for ns in nameservers:
-                print('  {}'.format(ns))
-            print('DNS Search Path:')
+                logger.info('  {}'.format(ns))
+            logger.info('DNS Search Path:')
             for sp in searchpath:
-                print('  {}'.format(sp))
+                logger.info('  {}'.format(sp))
             ntp_severs = esxi_parser.get_host_ntp_config(target_host)
-            print('NTP servers:')
+            logger.info('NTP servers:')
             for ntp in ntp_severs:
-                print('  {}'.format(ntp))
-            print('SSH service : {}'.format(esxi_parser.get_host_ssh_status(target_host)))
-            print()
+                logger.info('  {}'.format(ntp))
+            logger.info('SSH service : {}'.format(esxi_parser.get_host_ssh_status(target_host)))
+            logger.info('')
 
-    print('>>> vDS configs')
+    logger.info('>>> vDS configs')
     for dvs in vds_configs:
-        print('Name : {}'.format(dvs.name))
-        print('Configured hosts: ')
+        logger.info('Name : {}'.format(dvs.name))
+        logger.info('Configured hosts: ')
         for member_host in dvs.config.host:
-            print('  {}'.format(member_host.config.host.name))
-        print('dvPortGroups: ')
+            logger.info('  {}'.format(member_host.config.host.name))
+        logger.info('dvPortGroups: ')
         for dvportgroup in dvs.config.uplinkPortgroup:
-            print('  {}'.format(dvportgroup.name))
-        print('Uplinks configured: ')
+            logger.info('  {}'.format(dvportgroup.name))
+        logger.info('Uplinks configured: ')
         for uplink in dvs.config.uplinkPortPolicy.uplinkPortName:
-            print('  {}'.format(uplink))
-        print('Port Groups: ')
+            logger.info('  {}'.format(uplink))
+        logger.info('Port Groups: ')
         for pg in dvs.portgroup:
             if type(pg.config.defaultPortConfig.vlan.vlanId) == int:
-                print('  {0} ( VLAN: {1} )'.format(pg.name, pg.config.defaultPortConfig.vlan.vlanId))
-        print()
+                logger.info('  {0} ( VLAN: {1} )'.format(pg.name, pg.config.defaultPortConfig.vlan.vlanId))
+        logger.info('')
 
-    print('>>> vSAN Cluster configs')
+    logger.info('>>> vSAN Cluster configs')
     for vsan_host in esxis:
-        print('>>>>>> {}'.format(vsan_host.name))
-        print('Cluster UUID: {}'.format(vsan_host.configManager.vsanSystem.config.clusterInfo.uuid))
-        print('Node UUID: {}'.format(vsan_host.configManager.vsanSystem.config.clusterInfo.nodeUuid))
+        logger.info('>>>>>> {}'.format(vsan_host.name))
+        logger.info('Cluster UUID: {}'.format(vsan_host.configManager.vsanSystem.config.clusterInfo.uuid))
+        logger.info('Node UUID: {}'.format(vsan_host.configManager.vsanSystem.config.clusterInfo.nodeUuid))
         disk_config = vsan_host.config.vsanHostConfig.storageInfo.diskMapping
-        print('Disk Group: {}'.format(disk_config[0].ssd.vsanDiskInfo.vsanUuid))
+        logger.info('Disk Group: {}'.format(disk_config[0].ssd.vsanDiskInfo.vsanUuid))
         for disk in disk_config:
-            print('Disk Claimed: ')
-            print('> Flash')
-            print('  {}'.format(disk.ssd.displayName))
-            print('> HDD')
+            logger.info('Disk Claimed: ')
+            logger.info('> Flash')
+            logger.info('  {}'.format(disk.ssd.displayName))
+            logger.info('> HDD')
             for non_ssd in disk.nonSsd:
-                print('  {}'.format(non_ssd.displayName))
-        print()
+                logger.info('  {}'.format(non_ssd.displayName))
+        logger.info('')
 
 
     # TODO: Return JSON value with parsed
@@ -161,7 +163,7 @@ def get_nsxt_configs(config):
     cfg = config['nsxt']
     NSX_MGR, NSX_USERNAME, NSX_PASSWORD = cfg['ip_address'], cfg['admin_user_name'], cfg['admin_password']
 
-    print('------ Starting config_dump for NSX-T Manager: {}'.format(NSX_MGR))
+    logger.info('------ Starting config_dump for NSX-T Manager: {}'.format(NSX_MGR))
     nsx = Nsxt(ipaddress=NSX_MGR, username=NSX_USERNAME, password=NSX_PASSWORD)
     # Call v3 API for fetching configs
     vip = nsx.get('/api/v1/cluster/api-virtual-ip')
@@ -184,121 +186,121 @@ def get_nsxt_configs(config):
     dhcp_servers = nsx.get('/policy/api/v1/infra/dhcp-server-configs')
     mk_proxies = nsx.get('/policy/api/v1/infra/metadata-proxies')
 
-    print('>>> Version information')
-    print('Product Version: \t{}'.format(hostname['product_version']))
-    print('Kernel Version: \t{}'.format(hostname['kernel_version']))
-    print()
+    logger.info('>>> Version information')
+    logger.info('Product Version: \t{}'.format(hostname['product_version']))
+    logger.info('Kernel Version: \t{}'.format(hostname['kernel_version']))
+    logger.info('')
 
     # Fetch only management network information
-    print('>>> Management Network information')
+    logger.info('>>> Management Network information')
     for net in mgmt_networks['results']:
-        print('Interface: \t{0} (Physical Address: {1})'.format(net['interface_id'], net['physical_address']))
-        print('IP Address: \t{}'.format(net['ip_addresses'][0]['ip_address']))
-        print('Netmask: \t{}'.format(net['ip_addresses'][0]['netmask']))
+        logger.info('Interface: \t{0} (Physical Address: {1})'.format(net['interface_id'], net['physical_address']))
+        logger.info('IP Address: \t{}'.format(net['ip_addresses'][0]['ip_address']))
+        logger.info('Netmask: \t{}'.format(net['ip_addresses'][0]['netmask']))
         if 'default_gateway' in net:
-            print('Gateway: \t{}'.format(net['default_gateway']))
-        print('MTU: \t\t{}'.format(net['mtu']))
-        print()
+            logger.info('Gateway: \t{}'.format(net['default_gateway']))
+        logger.info('MTU: \t\t{}'.format(net['mtu']))
+        logger.info('')
 
-    print('>>> Cluster-wide information')
-    print('vIP: \t\t\t{}'.format(vip['ip_address']))
-    print('Cluster UUID: \t\t{}'.format(cluster['cluster_id']))
-    print('DNS Servers: \t\t{}'.format(dns['name_servers']))
-    print('DNS Search Path: \t{}'.format(domains['search_domains']))
-    print('NTP Servers: \t\t{}'.format(ntp['service_properties']['servers']))
-    print('SSH auto start: \t{}'.format(ssh['service_properties']['start_on_boot']))
-    print()
+    logger.info('>>> Cluster-wide information')
+    logger.info('vIP: \t\t\t{}'.format(vip['ip_address']))
+    logger.info('Cluster UUID: \t\t{}'.format(cluster['cluster_id']))
+    logger.info('DNS Servers: \t\t{}'.format(dns['name_servers']))
+    logger.info('DNS Search Path: \t{}'.format(domains['search_domains']))
+    logger.info('NTP Servers: \t\t{}'.format(ntp['service_properties']['servers']))
+    logger.info('SSH auto start: \t{}'.format(ssh['service_properties']['start_on_boot']))
+    logger.info('')
 
-    print('>>> Mangement Cluster')
+    logger.info('>>> Mangement Cluster')
     for i, node in enumerate(cluster['nodes']):
-        print('Node-{0} FQDN: \t{1}'.format(i+1, node['fqdn']))
-        print('UUID: \t\t{}'.format(node['node_uuid']))
-        print('IP Address: \t{}'.format(node['entities'][0]['ip_address']))
-        print()
+        logger.info('Node-{0} FQDN: \t{1}'.format(i+1, node['fqdn']))
+        logger.info('UUID: \t\t{}'.format(node['node_uuid']))
+        logger.info('IP Address: \t{}'.format(node['entities'][0]['ip_address']))
+        logger.info('')
 
-    print('>>> Edge Cluster information')
-    print('Name: \t{}'.format(edge_cluster['results'][0]['display_name']))
-    print('ID: \t{}'.format(edge_cluster['results'][0]['id']))
-    print()
-    print('>>> Edge Nodes')
+    logger.info('>>> Edge Cluster information')
+    logger.info('Name: \t{}'.format(edge_cluster['results'][0]['display_name']))
+    logger.info('ID: \t{}'.format(edge_cluster['results'][0]['id']))
+    logger.info('')
+    logger.info('>>> Edge Nodes')
     for edge_node in edge_nodes['members']:
-        print('Name: \t{}'.format(edge_node['node_display_name']))
-        print('UUID: \t{}'.format(edge_node['node_id']))
-        print()
+        logger.info('Name: \t{}'.format(edge_node['node_display_name']))
+        logger.info('UUID: \t{}'.format(edge_node['node_id']))
+        logger.info('')
 
-    print('>>> Transport-Zone information')
+    logger.info('>>> Transport-Zone information')
     overlay_tzs = [otz for otz in transport_zones['results'] if otz['transport_type'] == 'OVERLAY']
-    print('>>>>>> Overlay transport-zones')
+    logger.info('>>>>>> Overlay transport-zones')
     for overlay_tz in overlay_tzs:
-        print('Name: \t\t{}'.format(overlay_tz['display_name']))
-        print('UUID: \t\t{}'.format(overlay_tz['id']))
-        print('N-vDS Mode: \t{}'.format(overlay_tz['host_switch_mode']))
-        print()
+        logger.info('Name: \t\t{}'.format(overlay_tz['display_name']))
+        logger.info('UUID: \t\t{}'.format(overlay_tz['id']))
+        logger.info('N-vDS Mode: \t{}'.format(overlay_tz['host_switch_mode']))
+        logger.info('')
 
     vlan_tzs = [vtz for vtz in transport_zones['results'] if vtz['transport_type'] == 'VLAN']
-    print('>>>>>> VLAN transport-zones')
+    logger.info('>>>>>> VLAN transport-zones')
     for vlan_tz in vlan_tzs:
-        print('Name: \t\t{}'.format(vlan_tz['display_name']))
-        print('UUID: \t\t{}'.format(vlan_tz['id']))
-        print('N-vDS Mode: \t{}'.format(vlan_tz['host_switch_mode']))
-        print()
+        logger.info('Name: \t\t{}'.format(vlan_tz['display_name']))
+        logger.info('UUID: \t\t{}'.format(vlan_tz['id']))
+        logger.info('N-vDS Mode: \t{}'.format(vlan_tz['host_switch_mode']))
+        logger.info('')
 
-    print('>>> Transport Nodes information')
-    print('>>>>> Host transport-nodes')
+    logger.info('>>> Transport Nodes information')
+    logger.info('>>>>> Host transport-nodes')
     for htn in host_transport_nodes['results']:
-        print('Name: \t\t{}'.format(htn['display_name']))
-        print('UUID: \t\t{}'.format(htn['id']))
-        print('OS Type: \t{}'.format(htn['node_deployment_info']['os_type']))
-        print('IP Address: \t{}'.format(htn['node_deployment_info']['ip_addresses'][0]))
-        print('N-vDS Name: \t{}'.format(htn['host_switch_spec']['host_switches'][0]['host_switch_name']))
-        print()
-    print('>>>>>> Edge transport-nodes')
+        logger.info('Name: \t\t{}'.format(htn['display_name']))
+        logger.info('UUID: \t\t{}'.format(htn['id']))
+        logger.info('OS Type: \t{}'.format(htn['node_deployment_info']['os_type']))
+        logger.info('IP Address: \t{}'.format(htn['node_deployment_info']['ip_addresses'][0]))
+        logger.info('N-vDS Name: \t{}'.format(htn['host_switch_spec']['host_switches'][0]['host_switch_name']))
+        logger.info('')
+    logger.info('>>>>>> Edge transport-nodes')
     for etn in edge_transport_nodes['results']:
-        print('Name: \t\t\t{}'.format(etn['display_name']))
-        print('UUID: \t\t\t{}'.format(etn['id']))
-        print('Deployment Type: \t{}'.format(etn['node_deployment_info']['deployment_type']))
-        print('Form Factor: \t\t{}'.format(etn['node_deployment_info']['deployment_config']['form_factor']))
-        print('IP Address: \t\t{}'.format(etn['node_deployment_info']['ip_addresses'][0]))
-        print('FQDN: \t\t\t{}'.format(etn['node_deployment_info']['node_settings']['hostname']))
+        logger.info('Name: \t\t\t{}'.format(etn['display_name']))
+        logger.info('UUID: \t\t\t{}'.format(etn['id']))
+        logger.info('Deployment Type: \t{}'.format(etn['node_deployment_info']['deployment_type']))
+        logger.info('Form Factor: \t\t{}'.format(etn['node_deployment_info']['deployment_config']['form_factor']))
+        logger.info('IP Address: \t\t{}'.format(etn['node_deployment_info']['ip_addresses'][0]))
+        logger.info('FQDN: \t\t\t{}'.format(etn['node_deployment_info']['node_settings']['hostname']))
 
-        print('N-vDS Name: \t\t{}'.format(etn['host_switch_spec']['host_switches'][0]['host_switch_name']))
-        print()
+        logger.info('N-vDS Name: \t\t{}'.format(etn['host_switch_spec']['host_switches'][0]['host_switch_name']))
+        logger.info('')
 
-    print('>>> IP Pool information')
+    logger.info('>>> IP Pool information')
     for pool in ip_pools['results']:
-        print('Name: {}'.format(pool['display_name']))
-        print('UUID: {}'.format(pool['id']))
-        print('Subnets:')
+        logger.info('Name: {}'.format(pool['display_name']))
+        logger.info('UUID: {}'.format(pool['id']))
+        logger.info('Subnets:')
         for subnet in pool['subnets']:
-            print('  CIDR={0}, Range=[ {1} - {2} ]'.format(subnet['cidr'], subnet['allocation_ranges'][0]['start'], subnet['allocation_ranges'][0]['end']))
-        print('Usage: total={0}, allocated={1}, free={2}'.format(pool['pool_usage']['total_ids'], pool['pool_usage']['allocated_ids'], pool['pool_usage']['free_ids']))
-        print()
+            logger.info('  CIDR={0}, Range=[ {1} - {2} ]'.format(subnet['cidr'], subnet['allocation_ranges'][0]['start'], subnet['allocation_ranges'][0]['end']))
+        logger.info('Usage: total={0}, allocated={1}, free={2}'.format(pool['pool_usage']['total_ids'], pool['pool_usage']['allocated_ids'], pool['pool_usage']['free_ids']))
+        logger.info('')
 
-    print('>>> Tier-0 Routers')
+    logger.info('>>> Tier-0 Routers')
     for tier_0 in tier_0s['results']:
-        print('Name: \t\t{}'.format(tier_0['display_name']))
-        print('UUID: \t\t{}'.format(tier_0['unique_id']))
-        print('HA Mode: \t{}'.format(tier_0['ha_mode']))
-        print('Failover Mode: \t{}'.format(tier_0['failover_mode']))
-        print()
+        logger.info('Name: \t\t{}'.format(tier_0['display_name']))
+        logger.info('UUID: \t\t{}'.format(tier_0['unique_id']))
+        logger.info('HA Mode: \t{}'.format(tier_0['ha_mode']))
+        logger.info('Failover Mode: \t{}'.format(tier_0['failover_mode']))
+        logger.info('')
 
-    print('>>> DHCP Server Profiles')
+    logger.info('>>> DHCP Server Profiles')
     for dhcp_server in dhcp_servers['results']:
-        print('Name: \t\t\t{}'.format(dhcp_server['display_name']))
-        print('UUID: \t\t\t{}'.format(dhcp_server['unique_id']))
-        print('Server Address: \t{}'.format(dhcp_server['server_address']))
+        logger.info('Name: \t\t\t{}'.format(dhcp_server['display_name']))
+        logger.info('UUID: \t\t\t{}'.format(dhcp_server['unique_id']))
+        logger.info('Server Address: \t{}'.format(dhcp_server['server_address']))
         edge = nsx.get('/policy/api/v1{}'.format(dhcp_server['edge_cluster_path']))
-        print('Edge Cluster: \t\t{}'.format(edge['display_name']))
-        print()
+        logger.info('Edge Cluster: \t\t{}'.format(edge['display_name']))
+        logger.info('')
 
-    print('>>> Metadata Proxies')
+    logger.info('>>> Metadata Proxies')
     for mk_proxy in mk_proxies['results']:
-        print('Name: \t\t\t{}'.format(mk_proxy['display_name']))
-        print('UUID: \t\t\t{}'.format(mk_proxy['unique_id']))
-        print('Server Address: \t{}'.format(mk_proxy['server_address']))
+        logger.info('Name: \t\t\t{}'.format(mk_proxy['display_name']))
+        logger.info('UUID: \t\t\t{}'.format(mk_proxy['unique_id']))
+        logger.info('Server Address: \t{}'.format(mk_proxy['server_address']))
         edge = nsx.get('/policy/api/v1{}'.format(dhcp_server['edge_cluster_path']))
-        print('Edge Cluster: \t\t{}'.format(edge['display_name']))
-        print()
+        logger.info('Edge Cluster: \t\t{}'.format(edge['display_name']))
+        logger.info('')
 
     # Return JSON value with parsed
     return None
@@ -308,33 +310,33 @@ def get_vio_configs(config):
     cfg = config['vio']
     VIO_MGR, VIO_USERNAME, VIO_PASSWORD = cfg['management_ip'], cfg['user_name'], cfg['vio_admin_password']
 
-    print('------ Starting config_dump for VIO Manager: {}'.format(VIO_MGR))
+    logger.info('------ Starting config_dump for VIO Manager: {}'.format(VIO_MGR))
     viomgr = Vio(ipaddress=VIO_MGR, username=VIO_USERNAME, password=VIO_PASSWORD)
     vio_networks = viomgr.get('/apis/vio.vmware.com/v1alpha1/namespaces/openstack/vioclusters/viocluster1')
     vio_nodes = viomgr.get('/api/v1/nodes')
     vio_machines = viomgr.get('/apis/cluster.k8s.io/v1alpha1/namespaces/openstack/machines')
 
-    print('>>> Network information ...')
-    print('> Management Network')
-    print('IP Ranges: \t{}'.format(vio_networks['spec']['cluster']['network_info'][0]['static_config']['ip_ranges']))
-    print('Netmask: \t{}'.format(vio_networks['spec']['cluster']['network_info'][0]['static_config']['netmask']))
-    print('Gateway: \t{}'.format(vio_networks['spec']['cluster']['network_info'][0]['static_config']['gateway']))
-    print('DNS Servers: \t{}'.format(vio_networks['spec']['cluster']['network_info'][0]['static_config']['dns']))
-    print()
-    print('> API Network')
-    print('IP Ranges: \t{}'.format(vio_networks['spec']['cluster']['network_info'][1]['static_config']['ip_ranges']))
-    print('Netmask: \t{}'.format(vio_networks['spec']['cluster']['network_info'][1]['static_config']['netmask']))
-    print('Gateway: \t{}'.format(vio_networks['spec']['cluster']['network_info'][1]['static_config']['gateway']))
-    print('DNS Servers: \t{}'.format(vio_networks['spec']['cluster']['network_info'][1]['static_config']['dns']))
-    print()
-    print('> NTP Servers: {}'.format(vio_machines['items'][-1]['spec']['providerSpec']['value']['machineSpec']['ntpServers']))
-    print()
-    print('> manager/controller nodes')
+    logger.info('>>> Network information ...')
+    logger.info('> Management Network')
+    logger.info('IP Ranges: \t{}'.format(vio_networks['spec']['cluster']['network_info'][0]['static_config']['ip_ranges']))
+    logger.info('Netmask: \t{}'.format(vio_networks['spec']['cluster']['network_info'][0]['static_config']['netmask']))
+    logger.info('Gateway: \t{}'.format(vio_networks['spec']['cluster']['network_info'][0]['static_config']['gateway']))
+    logger.info('DNS Servers: \t{}'.format(vio_networks['spec']['cluster']['network_info'][0]['static_config']['dns']))
+    logger.info('')
+    logger.info('> API Network')
+    logger.info('IP Ranges: \t{}'.format(vio_networks['spec']['cluster']['network_info'][1]['static_config']['ip_ranges']))
+    logger.info('Netmask: \t{}'.format(vio_networks['spec']['cluster']['network_info'][1]['static_config']['netmask']))
+    logger.info('Gateway: \t{}'.format(vio_networks['spec']['cluster']['network_info'][1]['static_config']['gateway']))
+    logger.info('DNS Servers: \t{}'.format(vio_networks['spec']['cluster']['network_info'][1]['static_config']['dns']))
+    logger.info('')
+    logger.info('> NTP Servers: {}'.format(vio_machines['items'][-1]['spec']['providerSpec']['value']['machineSpec']['ntpServers']))
+    logger.info('')
+    logger.info('> manager/controller nodes')
     for node in vio_nodes['items']:
-        print('Nodename: \t{}'.format(node['metadata']['name']))
-        print('  PodCIDR: \t{}'.format(node['spec']['podCIDR']))
-        print('  IntIP: \t{}'.format(node['status']['addresses'][0]['address']))
-        print('  ExtIP: \t{}'.format(node['status']['addresses'][1]['address']))
+        logger.info('Nodename: \t{}'.format(node['metadata']['name']))
+        logger.info('  PodCIDR: \t{}'.format(node['spec']['podCIDR']))
+        logger.info('  IntIP: \t{}'.format(node['status']['addresses'][0]['address']))
+        logger.info('  ExtIP: \t{}'.format(node['status']['addresses'][1]['address']))
 
     return None
 
@@ -344,47 +346,47 @@ def get_vrni_configs(config):
     VRNI_IPADDR, VRNI_USERNAME, VRNI_PASSWORD = cfg['hostname'], cfg['user_name'], cfg['password']
     VRNI_DOMAIN = cfg['domain']
 
-    print('------ Starting config_dump for vRNI: {}'.format(VRNI_IPADDR))
+    logger.info('------ Starting config_dump for vRNI: {}'.format(VRNI_IPADDR))
     vrni = VRni(ipaddress=VRNI_IPADDR, username=VRNI_USERNAME, password=VRNI_PASSWORD, domain=VRNI_DOMAIN)
     version_info = vrni.get('/api/ni/info/version')
     nodes_info = vrni.get('/api/ni/infra/nodes')
     ds_vcenter = vrni.get('/api/ni/data-sources/vcenters')
     ds_nsxmgr = vrni.get('/api/ni/data-sources/nsxt-managers')
 
-    print('>>> Version information')
-    print('API Version : {0}'.format(version_info['api_version']))
-    print()
+    logger.info('>>> Version information')
+    logger.info('API Version : {0}'.format(version_info['api_version']))
+    logger.info('')
 
-    print('>>> Nodes information')
+    logger.info('>>> Nodes information')
     # Fetch all node ids configured
     ni_node_ids = [i['id'] for i in nodes_info['results']]
     for node_id in ni_node_ids:
         node = vrni.get('/api/ni/infra/nodes/{}'.format(node_id))
-        print('Node ID: {0} (internal: {1})'.format(node['id'], node['node_id']))
-        print('IP Address: {}'.format(node['ip_address']))
-        print('Deployment Role: {}'.format(node['node_type']))
-    print()
-    print('>>> Data sources')
-    print('> vCenter Servers:')
+        logger.info('Node ID: {0} (internal: {1})'.format(node['id'], node['node_id']))
+        logger.info('IP Address: {}'.format(node['ip_address']))
+        logger.info('Deployment Role: {}'.format(node['node_type']))
+    logger.info('')
+    logger.info('>>> Data sources')
+    logger.info('> vCenter Servers:')
     vcenters = [vc['entity_id'] for vc in ds_vcenter['results']]
     for vcenter in vcenters:
         res_vc = vrni.get('/api/ni/data-sources/vcenters/{}'.format(vcenter))
-        print('Name : \t\t{0} (FQDN : {1})'.format(res_vc['nickname'], res_vc['fqdn']))
-        print('Username : \t{}'.format(res_vc['credentials']['username']))
-        print('EntityID : \t{}'.format(res_vc['entity_id']))
-        print('ProxyID : \t{}'.format(res_vc['proxy_id']))
-        print('Enabled : \t{}'.format(res_vc['enabled']))
-        print()
-    print('> NSX-T Managers:')
+        logger.info('Name : \t\t{0} (FQDN : {1})'.format(res_vc['nickname'], res_vc['fqdn']))
+        logger.info('Username : \t{}'.format(res_vc['credentials']['username']))
+        logger.info('EntityID : \t{}'.format(res_vc['entity_id']))
+        logger.info('ProxyID : \t{}'.format(res_vc['proxy_id']))
+        logger.info('Enabled : \t{}'.format(res_vc['enabled']))
+        logger.info('')
+    logger.info('> NSX-T Managers:')
     nsxmgrs = [nsxmgr['entity_id'] for nsxmgr in ds_nsxmgr['results']]
     for nsx in nsxmgrs:
         res_nsx = vrni.get('/api/ni/data-sources/nsxt-managers/{}'.format(nsx))
-        print('Name : \t\t{}'.format(res_nsx['nickname']))
-        print('Username : \t{}'.format(res_nsx['credentials']['username']))
-        print('EntityID : \t{}'.format(res_nsx['entity_id']))
-        print('ProxyID : \t{}'.format(res_nsx['proxy_id']))
-        print('Enabled : \t{}'.format(res_nsx['enabled']))
-        print()
+        logger.info('Name : \t\t{}'.format(res_nsx['nickname']))
+        logger.info('Username : \t{}'.format(res_nsx['credentials']['username']))
+        logger.info('EntityID : \t{}'.format(res_nsx['entity_id']))
+        logger.info('ProxyID : \t{}'.format(res_nsx['proxy_id']))
+        logger.info('Enabled : \t{}'.format(res_nsx['enabled']))
+        logger.info('')
 
     # TODO: Return JSON value with parsed
     return None
@@ -395,7 +397,7 @@ def get_vrli_configs(config):
     VRLI_IPADDR, VRLI_USERNAME, VRLI_PASSWORD = cfg['vip_address'], cfg['user_name'], cfg['password']
     VRLI_PROVIDER = 'Local'
 
-    print('------ Starting config_dump for vRLI: {}'.format(VRLI_IPADDR))
+    logger.info('------ Starting config_dump for vRLI: {}'.format(VRLI_IPADDR))
     vrli = VRli(ipaddress=VRLI_IPADDR, username=VRLI_USERNAME, password=VRLI_PASSWORD, provider=VRLI_PROVIDER)
     version_info = vrli.get('/api/v1/version')
     cluster_info = vrli.get('/api/v1/cluster/vips')
@@ -403,26 +405,26 @@ def get_vrli_configs(config):
     ntp_info = vrli.get('/api/v1/time/config')
     cp_info = vrli.get('/api/v1/content/contentpack/list')
 
-    print('>>> Version information')
-    print('{0} (Release Type: {1})'.format(version_info['version'], version_info['releaseName']))
-    print()
+    logger.info('>>> Version information')
+    logger.info('{0} (Release Type: {1})'.format(version_info['version'], version_info['releaseName']))
+    logger.info('')
 
-    print('>>> Deployment configurations ...')
-    print('> vIP : {0} (FQDN : {1})'.format(cluster_info['vips'][0]['ipAddress'], cluster_info['vips'][0]['fqdn']))
-    print()
-    print('> nodes')
+    logger.info('>>> Deployment configurations ...')
+    logger.info('> vIP : {0} (FQDN : {1})'.format(cluster_info['vips'][0]['ipAddress'], cluster_info['vips'][0]['fqdn']))
+    logger.info('')
+    logger.info('> nodes')
     for node in node_info['nodes']:
-        print('Node ID: {}'.format(node['id']))
-        print('IP Address: {}'.format(node['ip']))
-        print('Subnet: {}'.format(node['netmask']))
-        print('Gateway: {}'.format(node['gateway']))
-        print('DNS Server: {}'.format(node['dnsServers']))
-    print('NTP Servers : {}'.format(ntp_info['ntpConfig']['ntpServers']))
-    print()
+        logger.info('Node ID: {}'.format(node['id']))
+        logger.info('IP Address: {}'.format(node['ip']))
+        logger.info('Subnet: {}'.format(node['netmask']))
+        logger.info('Gateway: {}'.format(node['gateway']))
+        logger.info('DNS Server: {}'.format(node['dnsServers']))
+    logger.info('NTP Servers : {}'.format(ntp_info['ntpConfig']['ntpServers']))
+    logger.info('')
 
-    print('>>> Content Pack configured ...')
+    logger.info('>>> Content Pack configured ...')
     for cp in cp_info['contentPackMetadataList']:
-        print('{0} (formatVersion: {1}, contentVersion: {2})'.format(cp['name'], cp['formatVersion'], cp['contentVersion']))
+        logger.info('{0} (formatVersion: {1}, contentVersion: {2})'.format(cp['name'], cp['formatVersion'], cp['contentVersion']))
 
     # TODO: Should be return JSON value simplified
     return None
@@ -432,7 +434,7 @@ def get_vrops_configs(config):
     cfg = config['vrops']
     VROPS_IPADDR, VROPS_USERNAME, VROPS_PASSWORD = cfg['master_node_ip'], cfg['node_user_name'], cfg['node_admin_password']
 
-    print('------ Starting config_dump for vROps: {}'.format(VROPS_IPADDR))
+    logger.info('------ Starting config_dump for vROps: {}'.format(VROPS_IPADDR))
     # Instanciate vROps class
     vrops = VROps(ipaddress=VROPS_IPADDR, username=VROPS_USERNAME, password=VROPS_PASSWORD)
 
@@ -444,32 +446,32 @@ def get_vrops_configs(config):
     mp_info = vrops.get('/suite-api/api/solutions')
     adapter_info = vrops.get('/suite-api/api/adapters')
 
-    print('>>> Version information')
-    print('{}'.format(versions['releaseName']))
-    print('Release Date: {}'.format(versions['humanlyReadableReleaseDate']))
-    print()
+    logger.info('>>> Version information')
+    logger.info('{}'.format(versions['releaseName']))
+    logger.info('Release Date: {}'.format(versions['humanlyReadableReleaseDate']))
+    logger.info('')
 
-    print('>>> Cluster configurations')
+    logger.info('>>> Cluster configurations')
     for node in cluster_conf['slices']:
-        print('Node: {}'.format(node['node_name']))
-        print('IP Address: \t{}'.format(ip_conf['address']))
-        print('Deployment Role: {}'.format(node['node_type']))
-        print('Netmask: {}'.format(node['network_properties']['network1_netmask']))
-        print('Gateway: {}'.format(node['network_properties']['default_gateway']))
-        print('DNS Servers: \t{}'.format(node['network_properties']['domain_name_servers']))
-        print('Domain Name: \t{}'.format(node['network_properties']['domain_name']))
-        print('NTP Servers: \t{}'.format(node['ntp_servers']))
-        print()
+        logger.info('Node: {}'.format(node['node_name']))
+        logger.info('IP Address: \t{}'.format(ip_conf['address']))
+        logger.info('Deployment Role: {}'.format(node['node_type']))
+        logger.info('Netmask: {}'.format(node['network_properties']['network1_netmask']))
+        logger.info('Gateway: {}'.format(node['network_properties']['default_gateway']))
+        logger.info('DNS Servers: \t{}'.format(node['network_properties']['domain_name_servers']))
+        logger.info('Domain Name: \t{}'.format(node['network_properties']['domain_name']))
+        logger.info('NTP Servers: \t{}'.format(node['ntp_servers']))
+        logger.info('')
 
-    print('>>> Installed Management Packs')
+    logger.info('>>> Installed Management Packs')
     for mp in mp_info['solution']:
-        print('{0} (Version : {1})'.format(mp['name'], mp['version']))
+        logger.info('{0} (Version : {1})'.format(mp['name'], mp['version']))
 
-    print()
+    logger.info('')
 
-    print('>>> Configured Adapters')
+    logger.info('>>> Configured Adapters')
     for adapter in adapter_info['adapterInstancesInfoDto']:
-        print('ID: {0}, Name: {1}'.format(adapter['id'], adapter['resourceKey']['name']))
+        logger.info('ID: {0}, Name: {1}'.format(adapter['id'], adapter['resourceKey']['name']))
 
     # TODO: Should be return JSON value simplified
     return None
@@ -477,47 +479,70 @@ def get_vrops_configs(config):
 
 if __name__ == "__main__":
 
+    # Log file validations
+    LOG_DIR = './logs'
+    if not os.path.exists(LOG_DIR):
+        logger.info('Provided log directory does not exists now, create new one, path [ {} ]'.format(LOG_DIR))
+        os.mkdir(LOG_DIR)
+
+    LOG_FILENAME = '{}_nfvstack_collector.log'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
+    LOG_FILE_PATH = os.path.join(LOG_DIR, LOG_FILENAME)
+    # Basic handler
+    _detail_formatting = '%(asctime)s : %(name)s - %(levelname)s : %(message)s'
+    logging.basicConfig(level=logging.DEBUG, format=_detail_formatting, filename=LOG_FILE_PATH)
+    logging.getLogger('modules').setLevel(level=logging.DEBUG)
+    # Console output handler
+    console = logging.StreamHandler()
+    # console_formatter = logging.Formatter('%(asctime)s : %(message)s')
+    # console.setFormatter(console_formatter)
+    # console.setLevel(logging.INFO)
+
+    logger = logging.getLogger(__name__)
+    logging.getLogger(__name__).addHandler(console)
+
+    # Input file validations
     CONFIG_FILE_PATH = './InputFile-NFVStack.yaml'
     if os.path.exists(CONFIG_FILE_PATH):
-        print('>>> Loading input parameter file : [ {} ]'.format(CONFIG_FILE_PATH))
+        logger.info('>>> Loading input parameter file : [ {} ]'.format(CONFIG_FILE_PATH))
         configs = read_config_from_file(conf_file_path=CONFIG_FILE_PATH)
     else:
-        print('Provided configuration file path is wrong.')
-        print('Configuration file is expected to be allocated on: {} '.format(CONFIG_FILE_PATH))
+        logger.error('Provided configuration file path is wrong.')
+        logger.error('Configuration file is expected to be allocated on: {} '.format(CONFIG_FILE_PATH))
         sys.exit(1)
 
-    print('>>> Start collecting configurations, this might take some time ...')
-    print()
-    print('--------------------------------------------------------------------')
-    print('### M-Plane vCenter Server ')
-    vcenter_configs = get_vcenter_configs(config=configs.get('management'))
-    print()
-    print('### C-Plane vCenter Server ')
-    vcenter_configs = get_vcenter_configs(config=configs.get('c_plane'))
-    print()
-    print('--------------------------------------------------------------------')
-    print('### C-Plane NSX-T Manager')
-    nsxt_configs = get_nsxt_configs(config=configs.get('c_plane'))
-    print()
-    print('--------------------------------------------------------------------')
-    print('### C-Plane VMware Integrated OpenStack')
+    logger.info('>>> Start collecting configurations, this might take some time ...')
+    logger.info('')
+    logger.info('--------------------------------------------------------------------')
+    logger.info('### M-Plane vCenter Server ')
+    # vcenter_configs = get_vcenter_configs(config=configs.get('management'))
+    logger.info('')
+    logger.info('### C-Plane vCenter Server ')
+    # vcenter_configs = get_vcenter_configs(config=configs.get('c_plane'))
+    logger.info('')
+    logger.info('--------------------------------------------------------------------')
+    logger.info('### C-Plane NSX-T Manager')
+    # nsxt_configs = get_nsxt_configs(config=configs.get('c_plane'))
+    logger.info('')
+    logger.info('--------------------------------------------------------------------')
+    logger.info('### C-Plane VMware Integrated OpenStack')
     vio_configs = get_vio_configs(config=configs.get('c_plane'))
-    print()
-    print('--------------------------------------------------------------------')
-    print('### C-Plane vRealize Operations Manager')
+    logger.info('')
+    logger.info('--------------------------------------------------------------------')
+    logger.info('### C-Plane vRealize Operations Manager')
     vrops_configs = get_vrops_configs(config=configs.get('c_plane'))
-    print()
-    print('--------------------------------------------------------------------')
-    print('### C-Plane vRealize Log Insight')
+    sys.exit(1)
+    logger.info('')
+    logger.info('--------------------------------------------------------------------')
+    logger.info('### C-Plane vRealize Log Insight')
     vrli_configs = get_vrli_configs(config=configs.get('c_plane'))
-    print()
-    print('--------------------------------------------------------------------')
-    print('### C-Plane vRealize Network Insight')
+    logger.info('')
+    logger.info('--------------------------------------------------------------------')
+    logger.info('### C-Plane vRealize Network Insight')
     vrni_configs = get_vrni_configs(config=configs.get('c_plane'))
-    print()
-    print('--------------------------------------------------------------------')
-    print()
-    print('>>> All configuration dumped !!')
+    logger.info('')
+    logger.info('--------------------------------------------------------------------')
+    logger.info('')
+    logger.info('>>> All configuration dumped !!')
     # TODO: print path of logfile and dumped file as stdout
 
     sys.exit(0)
