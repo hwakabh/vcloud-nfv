@@ -312,6 +312,7 @@ def get_vio_configs(config):
     viomgr = Vio(ipaddress=VIO_MGR, username=VIO_USERNAME, password=VIO_PASSWORD)
     vio_networks = viomgr.get('/apis/vio.vmware.com/v1alpha1/namespaces/openstack/vioclusters/viocluster1')
     vio_nodes = viomgr.get('/api/v1/nodes')
+    vio_machines = viomgr.get('/apis/cluster.k8s.io/v1alpha1/namespaces/openstack/machines')
 
     print('>>> Network information ...')
     print('> Management Network')
@@ -326,13 +327,14 @@ def get_vio_configs(config):
     print('Gateway: \t{}'.format(vio_networks['spec']['cluster']['network_info'][1]['static_config']['gateway']))
     print('DNS Servers: \t{}'.format(vio_networks['spec']['cluster']['network_info'][1]['static_config']['dns']))
     print()
+    print('> NTP Servers: {}'.format(vio_machines['items'][-1]['spec']['providerSpec']['value']['machineSpec']['ntpServers']))
+    print()
     print('> manager/controller nodes')
     for node in vio_nodes['items']:
         print('Nodename: \t{}'.format(node['metadata']['name']))
         print('  PodCIDR: \t{}'.format(node['spec']['podCIDR']))
         print('  IntIP: \t{}'.format(node['status']['addresses'][0]['address']))
         print('  ExtIP: \t{}'.format(node['status']['addresses'][1]['address']))
-    # TODO: Research NTP API Endpoints for Kubernetes
 
     return None
 
