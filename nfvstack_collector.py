@@ -332,6 +332,8 @@ def get_vio_configs(config):
     vio_nodes = viomgr.get('/api/v1/nodes')
     vio_machines = viomgr.get('/apis/cluster.k8s.io/v1alpha1/namespaces/openstack/machines')
     vio_deployments = viomgr.get('/apis/vio.vmware.com/v1alpha1/namespaces/openstack/osdeployments')
+    vio_backend_vc = viomgr.get('/apis/vio.vmware.com/v1alpha1/namespaces/openstack/vcenters/vcenter1')
+    vio_backend_nsx = viomgr.get('/apis/vio.vmware.com/v1alpha1/namespaces/openstack/nsxs/nsx1')
 
     cluster_network = vio_networks['spec']['cluster']
     ntp_server = vio_machines['items'][-1]['spec']['providerSpec']['value']['machineSpec']['ntpServers']
@@ -377,16 +379,6 @@ def get_vio_configs(config):
     logger.info('')
 
     logger.info('>>> VIO Openstack Deployment configurations')
-    logger.info('private Endpoint: \t\t{}'.format(vio_deployments['items'][0]['spec']['openstack_endpoints']['private_vip']))
-    logger.info('Public Endpoint: \t\t{}'.format(vio_deployments['items'][0]['spec']['openstack_endpoints']['public_vip']))
-    logger.info('Public hostname: \t\t{}'.format(vio_deployments['items'][0]['spec']['public_hostname']))
-    logger.info('Deployment mode: \t\t{}'.format(vio_deployments['items'][0]['spec']['ha-enabled']))
-    logger.info('Region Name: \t\t\t{}'.format(vio_deployments['items'][0]['spec']['region_name']))
-    logger.info('Admin Domain Name: \t\t{}'.format(vio_deployments['items'][0]['spec']['admin_domain_name']))
-
-    os_services = [svc['service'] for svc in vio_deployments['items'][0]['spec']['services']]
-    logger.info('Deployed OpenStack Services: \t{}'.format(os_services))
-
     deployment_configs = {
         'endpoints': {
             'private': {
@@ -401,6 +393,25 @@ def get_vio_configs(config):
         'region_name': vio_deployments['items'][0]['spec']['region_name'],
         'admin_domain': vio_deployments['items'][0]['spec']['admin_domain_name']
     }
+
+    logger.info('private Endpoint: \t\t{}'.format(vio_deployments['items'][0]['spec']['openstack_endpoints']['private_vip']))
+    logger.info('Public Endpoint: \t\t{}'.format(vio_deployments['items'][0]['spec']['openstack_endpoints']['public_vip']))
+    logger.info('Public hostname: \t\t{}'.format(vio_deployments['items'][0]['spec']['public_hostname']))
+    logger.info('HA mode: \t\t\t{}'.format(vio_deployments['items'][0]['spec']['ha-enabled']))
+    logger.info('Region Name: \t\t\t{}'.format(vio_deployments['items'][0]['spec']['region_name']))
+    logger.info('Admin Domain Name: \t\t{}'.format(vio_deployments['items'][0]['spec']['admin_domain_name']))
+
+    os_services = [svc['service'] for svc in vio_deployments['items'][0]['spec']['services']]
+    logger.info('Deployed OpenStack Services: \t{}'.format(os_services))
+    logger.info('')
+
+    logger.info('>>> Configured backends')
+    backend_configs = {
+        'vsphere': vio_backend_vc['spec']['hostname'],
+        'nsx': vio_backend_nsx['spec']['hostname']
+    }
+    logger.info('vSphere: \t{}'.format(vio_backend_vc['spec']['hostname']))
+    logger.info('NSX-T: \t\t{}'.format(vio_backend_nsx['spec']['hostname']))
     logger.info('')
 
     # Parse data for filedump
@@ -410,7 +421,8 @@ def get_vio_configs(config):
         'ntp': ntp_server,
         'node_networks': node_configs,
         'osdeployment': deployment_configs,
-        'openstack_services': os_services
+        'openstack_services': os_services,
+        'vio_backends': backend_configs
     }
 
     return config_dump
