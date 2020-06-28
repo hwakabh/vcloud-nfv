@@ -21,6 +21,11 @@ class Vio():
 
     def get(self, urisuffix):
         uri = '{0}{1}'.format(self.baseuri, urisuffix)
-        res = requests.get(uri, headers=self.headers, auth=(self.username, self.password), verify=False)
+        res = requests.get(
+            uri,
+            headers=self.headers,
+            auth=(self.username, self.password),
+            verify=False
+        )
         logger.debug(json.loads(res.text))
         return json.loads(res.text)

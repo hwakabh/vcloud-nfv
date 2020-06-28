@@ -35,7 +35,9 @@ class VROps():
         )
         logger.debug(token)
         # Update headers
-        self.headers['Authorization'] = 'vRealizeOpsToken {}'.format(token.get('token'))
+        self.headers['Authorization'] = 'vRealizeOpsToken {}'.format(
+            token.get('token')
+        )
 
     def casa_get(self, urisuffix):
         header = {
@@ -43,19 +45,33 @@ class VROps():
             'Accept': 'application/json',
         }
         uri = '{0}{1}'.format(self.baseuri, urisuffix)
-        res = requests.get(uri, headers=header, auth=(self.username, self.password), verify=False)
+        res = requests.get(
+            uri,
+            headers=header,
+            auth=(self.username, self.password),
+            verify=False
+        )
         logger.debug(json.loads(res.text))
         return json.loads(res.text)
 
     def get(self, urisuffix):
         uri = '{0}{1}'.format(self.baseuri, urisuffix)
-        res = requests.get(uri, headers=self.headers, verify=False)
+        res = requests.get(
+            uri,
+            headers=self.headers,
+            verify=False
+        )
         logger.debug(json.loads(res.text))
         return json.loads(res.text)
 
     # POST for fetch suite-api token
     def post(self, urlsuffix, headers=None, reqbody=None):
         uri = '{0}{1}'.format(self.baseuri, urlsuffix)
-        res = requests.post(uri, headers=self.headers, data=reqbody, verify=False)
+        res = requests.post(
+            uri,
+            headers=self.headers,
+            data=reqbody,
+            verify=False
+        )
         logger.debug(json.loads(res.text))
         return json.loads(res.text)
