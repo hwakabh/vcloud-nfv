@@ -19,6 +19,16 @@ def read_config_from_file(conf_file_path):
     return yaml.safe_load(data)
 
 
+def export_config_to_file(dump_data, timestamp):
+    # TODO: wrap as directory for store dump data
+    # --- YYYYMMDD_nfvstack/*.json
+    target_product = dump_data['product']
+    dump_file_name = '{0}_{1}_config.json'.format(timestamp, target_product)
+    with open(dump_file_name, 'w') as f:
+        json.dump(dump_data, f, indent=3)
+    return dump_file_name
+
+
 def get_vcenter_configs(config):
     cfg = config['vcenter']
     IPADDRESS, USERNAME, PASSWORD = cfg['ip_address'], cfg['user_name'], cfg['sso_password']
@@ -308,37 +318,68 @@ def get_nsxt_configs(config):
 
 def get_vio_configs(config):
     cfg = config['vio']
-    VIO_MGR, VIO_USERNAME, VIO_PASSWORD = cfg['management_ip'], cfg['user_name'], cfg['vio_admin_password']
+    VIO_MGR = cfg['management_ip']
+    VIO_USERNAME = cfg['user_name']
+    VIO_PASSWORD = cfg['vio_admin_password']
 
-    logger.info('------ Starting config_dump for VIO Manager: {}'.format(VIO_MGR))
-    viomgr = Vio(ipaddress=VIO_MGR, username=VIO_USERNAME, password=VIO_PASSWORD)
+    logger.info('--- Collect data from VIO Manager: {}'.format(VIO_MGR))
+    viomgr = Vio(
+        ipaddress=VIO_MGR,
+        username=VIO_USERNAME,
+        password=VIO_PASSWORD
+    )
     vio_networks = viomgr.get('/apis/vio.vmware.com/v1alpha1/namespaces/openstack/vioclusters/viocluster1')
     vio_nodes = viomgr.get('/api/v1/nodes')
     vio_machines = viomgr.get('/apis/cluster.k8s.io/v1alpha1/namespaces/openstack/machines')
 
+    cluster_network = vio_networks['spec']['cluster']
+    ntp_server = vio_machines['items'][-1]['spec']['providerSpec']['value']['machineSpec']['ntpServers']
+
     logger.info('>>> Network information ...')
-    logger.info('> Management Network')
-    logger.info('IP Ranges: \t{}'.format(vio_networks['spec']['cluster']['network_info'][0]['static_config']['ip_ranges']))
-    logger.info('Netmask: \t{}'.format(vio_networks['spec']['cluster']['network_info'][0]['static_config']['netmask']))
-    logger.info('Gateway: \t{}'.format(vio_networks['spec']['cluster']['network_info'][0]['static_config']['gateway']))
-    logger.info('DNS Servers: \t{}'.format(vio_networks['spec']['cluster']['network_info'][0]['static_config']['dns']))
-    logger.info('')
-    logger.info('> API Network')
-    logger.info('IP Ranges: \t{}'.format(vio_networks['spec']['cluster']['network_info'][1]['static_config']['ip_ranges']))
-    logger.info('Netmask: \t{}'.format(vio_networks['spec']['cluster']['network_info'][1]['static_config']['netmask']))
-    logger.info('Gateway: \t{}'.format(vio_networks['spec']['cluster']['network_info'][1]['static_config']['gateway']))
-    logger.info('DNS Servers: \t{}'.format(vio_networks['spec']['cluster']['network_info'][1]['static_config']['dns']))
-    logger.info('')
-    logger.info('> NTP Servers: {}'.format(vio_machines['items'][-1]['spec']['providerSpec']['value']['machineSpec']['ntpServers']))
+    network_configs = []
+    for network in cluster_network['network_info']:
+        netconf = {
+            'network_type': network['type'],
+            'ipaddress': network['static_config']['ip_ranges'],
+            'netmask': network['static_config']['netmask'],
+            'gateway': network['static_config']['gateway'],
+            'dns': network['static_config']['dns'],
+        }
+        network_configs.append(netconf)
+
+        logger.info('> {} Network'.format(network['type']))
+        logger.info('IP Ranges: \t{}'.format(network['static_config']['ip_ranges']))
+        logger.info('Netmask: \t{}'.format(network['static_config']['netmask']))
+        logger.info('Gateway: \t{}'.format(network['static_config']['gateway']))
+        logger.info('DNS Servers: \t{}'.format(network['static_config']['dns']))
+        logger.info('')
+
+    logger.info('> NTP Servers: {}'.format(ntp_server))
     logger.info('')
     logger.info('> manager/controller nodes')
+    node_configs = []
     for node in vio_nodes['items']:
+        nodeconf = {
+            'name': node['metadata']['name'],
+            'pod_cidr': node['spec']['podCIDR'],
+            'internal_ip': node['status']['addresses'][0]['address'],
+            'external_ip': node['status']['addresses'][1]['address'],
+        }
+        node_configs.append(nodeconf)
         logger.info('Nodename: \t{}'.format(node['metadata']['name']))
-        logger.info('  PodCIDR: \t{}'.format(node['spec']['podCIDR']))
-        logger.info('  IntIP: \t{}'.format(node['status']['addresses'][0]['address']))
-        logger.info('  ExtIP: \t{}'.format(node['status']['addresses'][1]['address']))
+        logger.info('  Pod CIDR: \t{}'.format(node['spec']['podCIDR']))
+        logger.info('  Internal IP: \t{}'.format(node['status']['addresses'][0]['address']))
+        logger.info('  External IP: \t{}'.format(node['status']['addresses'][1]['address']))
 
-    return None
+    # Parse data for filedump
+    config_dump = {
+        'product': 'vio',
+        'network': network_configs,
+        'ntp': ntp_server,
+        'node_networks': node_configs
+    }
+
+    return config_dump
 
 
 def get_vrni_configs(config):
@@ -526,7 +567,11 @@ if __name__ == "__main__":
     logger.info('')
     logger.info('--------------------------------------------------------------------')
     logger.info('### C-Plane VMware Integrated OpenStack')
-    vio_configs = get_vio_configs(config=configs.get('c_plane'))
+    vio_config_dump = export_config_to_file(
+        dump_data=get_vio_configs(config=configs.get('c_plane')),
+        timestamp=TIMESTAMP
+    )
+    logger.info('\n--- C-Plane VIO config exported : {}'.format(vio_config_dump))
     logger.info('')
     logger.info('--------------------------------------------------------------------')
     logger.info('### C-Plane vRealize Operations Manager')
