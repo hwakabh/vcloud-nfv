@@ -482,7 +482,6 @@ if __name__ == "__main__":
     # Log file validations
     LOG_DIR = './logs'
     if not os.path.exists(LOG_DIR):
-        logger.info('Provided log directory does not exists now, create new one, path [ {} ]'.format(LOG_DIR))
         os.mkdir(LOG_DIR)
 
     LOG_FILENAME = '{}_nfvstack_collector.log'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
