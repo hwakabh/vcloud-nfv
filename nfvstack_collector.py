@@ -435,11 +435,18 @@ def get_vrni_configs(config):
 
 def get_vrli_configs(config):
     cfg = config['vrli']
-    VRLI_IPADDR, VRLI_USERNAME, VRLI_PASSWORD = cfg['vip_address'], cfg['user_name'], cfg['password']
+    VRLI_IPADDR = cfg['vip_address']
+    VRLI_USERNAME = cfg['user_name']
+    VRLI_PASSWORD = cfg['password']
     VRLI_PROVIDER = 'Local'
 
-    logger.info('------ Starting config_dump for vRLI: {}'.format(VRLI_IPADDR))
-    vrli = VRli(ipaddress=VRLI_IPADDR, username=VRLI_USERNAME, password=VRLI_PASSWORD, provider=VRLI_PROVIDER)
+    logger.info('--- Collect data from vRLI: {}'.format(VRLI_IPADDR))
+    vrli = VRli(
+        ipaddress=VRLI_IPADDR,
+        username=VRLI_USERNAME,
+        password=VRLI_PASSWORD,
+        provider=VRLI_PROVIDER
+    )
     version_info = vrli.get('/api/v1/version')
     cluster_info = vrli.get('/api/v1/cluster/vips')
     node_info = vrli.get('/api/v1/cluster/nodes')
@@ -447,6 +454,10 @@ def get_vrli_configs(config):
     cp_info = vrli.get('/api/v1/content/contentpack/list')
 
     logger.info('>>> Version information')
+    version_configs = {
+        'version': version_info['version'],
+        'release_type': version_info['releaseName']
+    }
     logger.info('{0} (Release Type: {1})'.format(version_info['version'], version_info['releaseName']))
     logger.info('')
 
@@ -454,7 +465,17 @@ def get_vrli_configs(config):
     logger.info('> vIP : {0} (FQDN : {1})'.format(cluster_info['vips'][0]['ipAddress'], cluster_info['vips'][0]['fqdn']))
     logger.info('')
     logger.info('> nodes')
+    cluster_configs = []
     for node in node_info['nodes']:
+        node_conf = {
+            'node_id': node['id'],
+            'ipaddress': node['ip'],
+            'netmask': node['netmask'],
+            'gateway': node['gateway'],
+            'dns': node['dnsServers'],
+            'ntp': ntp_info['ntpConfig']['ntpServers']
+        }
+        cluster_configs.append(node_conf)
         logger.info('Node ID: {}'.format(node['id']))
         logger.info('IP Address: {}'.format(node['ip']))
         logger.info('Subnet: {}'.format(node['netmask']))
@@ -464,20 +485,44 @@ def get_vrli_configs(config):
     logger.info('')
 
     logger.info('>>> Content Pack configured ...')
+    content_packs = []
     for cp in cp_info['contentPackMetadataList']:
+        content_pack = {
+            'name': cp['name'],
+            'format_version': cp['formatVersion'],
+            'content_version': cp['contentVersion']
+        }
+        content_packs.append(content_pack)
         logger.info('{0} (formatVersion: {1}, contentVersion: {2})'.format(cp['name'], cp['formatVersion'], cp['contentVersion']))
 
-    # TODO: Should be return JSON value simplified
-    return None
+    config_dump = {
+        'product': 'vrli',
+        'version': version_configs,
+        'network': {
+            'vip': {
+                'ipaddress': cluster_info['vips'][0]['ipAddress'],
+                'fqdn': cluster_info['vips'][0]['ipAddress']
+                },
+            'nodes': cluster_configs
+        },
+        'content_packs': content_packs
+    }
+
+    return config_dump
 
 
 def get_vrops_configs(config):
     cfg = config['vrops']
-    VROPS_IPADDR, VROPS_USERNAME, VROPS_PASSWORD = cfg['master_node_ip'], cfg['node_user_name'], cfg['node_admin_password']
+    VROPS_IPADDR = cfg['master_node_ip']
+    VROPS_USERNAME = cfg['node_user_name']
+    VROPS_PASSWORD = cfg['node_admin_password']
 
-    logger.info('------ Starting config_dump for vROps: {}'.format(VROPS_IPADDR))
-    # Instanciate vROps class
-    vrops = VROps(ipaddress=VROPS_IPADDR, username=VROPS_USERNAME, password=VROPS_PASSWORD)
+    logger.info('--- Collect data from vROps: {}'.format(VROPS_IPADDR))
+    vrops = VROps(
+        ipaddress=VROPS_IPADDR,
+        username=VROPS_USERNAME,
+        password=VROPS_PASSWORD
+    )
 
     # Fetch all info from CaSA API
     cluster_conf = vrops.casa_get('/casa/cluster/config')
@@ -488,15 +533,34 @@ def get_vrops_configs(config):
     adapter_info = vrops.get('/suite-api/api/adapters')
 
     logger.info('>>> Version information')
+    version_configs = {
+        'version': versions['releaseName'],
+        'release_date': versions['humanlyReadableReleaseDate']
+    }
     logger.info('{}'.format(versions['releaseName']))
     logger.info('Release Date: {}'.format(versions['humanlyReadableReleaseDate']))
     logger.info('')
 
     logger.info('>>> Cluster configurations')
+    cluster_configs = []
     for node in cluster_conf['slices']:
+        node_conf = {
+            'nodename': node['node_name'],
+            'deploy_role': node['node_type'],
+            'ipaddress': ip_conf['address'],
+            'netmask': node['network_properties']['network1_netmask'],
+            'gateway': node['network_properties']['default_gateway'],
+            'dns': {
+                'nameservers': node['network_properties']['domain_name_servers'],
+                'domain_name': node['network_properties']['domain_name']
+            },
+            'ntp': node['ntp_servers']
+        }
+        cluster_configs.append(node_conf)
+
         logger.info('Node: {}'.format(node['node_name']))
-        logger.info('IP Address: \t{}'.format(ip_conf['address']))
         logger.info('Deployment Role: {}'.format(node['node_type']))
+        logger.info('IP Address: \t{}'.format(ip_conf['address']))
         logger.info('Netmask: {}'.format(node['network_properties']['network1_netmask']))
         logger.info('Gateway: {}'.format(node['network_properties']['default_gateway']))
         logger.info('DNS Servers: \t{}'.format(node['network_properties']['domain_name_servers']))
@@ -505,17 +569,35 @@ def get_vrops_configs(config):
         logger.info('')
 
     logger.info('>>> Installed Management Packs')
+    management_packs = []
     for mp in mp_info['solution']:
+        mp = {
+            'name': mp['name'],
+            'version': mp['version']
+        }
+        management_packs.append(mp)
         logger.info('{0} (Version : {1})'.format(mp['name'], mp['version']))
 
     logger.info('')
 
     logger.info('>>> Configured Adapters')
+    adapters = []
     for adapter in adapter_info['adapterInstancesInfoDto']:
+        adptr = {
+            'name': adapter['resourceKey']['name'],
+            'id': adapter['id']
+        }
+        adapters.append(adptr)
         logger.info('ID: {0}, Name: {1}'.format(adapter['id'], adapter['resourceKey']['name']))
 
-    # TODO: Should be return JSON value simplified
-    return None
+    config_dump = {
+        'product': 'vrops',
+        'versions': version_configs,
+        'network': cluster_configs,
+        'mangement_packs': management_packs,
+        'adapters': adapters
+    }
+    return config_dump
 
 
 if __name__ == "__main__":
@@ -575,11 +657,19 @@ if __name__ == "__main__":
     logger.info('')
     logger.info('--------------------------------------------------------------------')
     logger.info('### C-Plane vRealize Operations Manager')
-    vrops_configs = get_vrops_configs(config=configs.get('c_plane'))
+    vrops_config_dump = export_config_to_file(
+        dump_data=get_vrops_configs(config=configs.get('c_plane')),
+        timestamp=TIMESTAMP
+    )
+    logger.info('\n--- C-Plane vROps config exported : {}'.format(vrops_config_dump))
     logger.info('')
     logger.info('--------------------------------------------------------------------')
     logger.info('### C-Plane vRealize Log Insight')
-    vrli_configs = get_vrli_configs(config=configs.get('c_plane'))
+    vrli_config_dump = export_config_to_file(
+        dump_data=get_vrli_configs(config=configs.get('c_plane')),
+        timestamp=TIMESTAMP
+    )
+    logger.info('\n--- C-Plane vRLI config exported : {}'.format(vrli_config_dump))
     logger.info('')
     logger.info('--------------------------------------------------------------------')
     logger.info('### C-Plane vRealize Network Insight')
