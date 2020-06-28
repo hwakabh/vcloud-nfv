@@ -430,44 +430,89 @@ def get_vio_configs(config):
 
 def get_vrni_configs(config):
     cfg = config['vrni']
-    VRNI_IPADDR, VRNI_USERNAME, VRNI_PASSWORD = cfg['hostname'], cfg['user_name'], cfg['password']
+    VRNI_IPADDR = cfg['hostname']
+    VRNI_USERNAME = cfg['user_name']
+    VRNI_PASSWORD = cfg['password']
     VRNI_DOMAIN = cfg['domain']
 
-    logger.info('------ Starting config_dump for vRNI: {}'.format(VRNI_IPADDR))
-    vrni = VRni(ipaddress=VRNI_IPADDR, username=VRNI_USERNAME, password=VRNI_PASSWORD, domain=VRNI_DOMAIN)
+    logger.info('--- Collect data from vRNI: {}'.format(VRNI_IPADDR))
+    vrni = VRni(
+        ipaddress=VRNI_IPADDR,
+        username=VRNI_USERNAME,
+        password=VRNI_PASSWORD,
+        domain=VRNI_DOMAIN
+    )
     version_info = vrni.get('/api/ni/info/version')
     nodes_info = vrni.get('/api/ni/infra/nodes')
     ds_vcenter = vrni.get('/api/ni/data-sources/vcenters')
     ds_nsxmgr = vrni.get('/api/ni/data-sources/nsxt-managers')
 
     logger.info('>>> Version information')
+    version_configs = {
+        'versions': {
+            'version': None,
+            'api_version': version_info['api_version']
+        }
+    }
     logger.info('API Version : {0}'.format(version_info['api_version']))
     logger.info('')
 
     logger.info('>>> Nodes information')
+    node_configs = []
     # Fetch all node ids configured
     ni_node_ids = [i['id'] for i in nodes_info['results']]
     for node_id in ni_node_ids:
         node = vrni.get('/api/ni/infra/nodes/{}'.format(node_id))
+        node_conf = {
+            'node_ids': {
+                'id': node['id'],
+                'internal_id': node['node_id']
+            },
+            'ipaddress': node['ip_address'],
+            'deploy_role': node['node_type']
+        }
+        node_configs.append(node_conf)
+
         logger.info('Node ID: {0} (internal: {1})'.format(node['id'], node['node_id']))
         logger.info('IP Address: {}'.format(node['ip_address']))
         logger.info('Deployment Role: {}'.format(node['node_type']))
     logger.info('')
+
     logger.info('>>> Data sources')
+    data_source_configs = []
     logger.info('> vCenter Servers:')
     vcenters = [vc['entity_id'] for vc in ds_vcenter['results']]
     for vcenter in vcenters:
         res_vc = vrni.get('/api/ni/data-sources/vcenters/{}'.format(vcenter))
-        logger.info('Name : \t\t{0} (FQDN : {1})'.format(res_vc['nickname'], res_vc['fqdn']))
+        vc_configs = {
+            'type': 'vcenter',
+            'nickname': res_vc['nickname'],
+            'username': res_vc['credentials']['username'],
+            'entity_id': res_vc['entity_id'],
+            'proxy_id': res_vc['proxy_id'],
+            'enabled': res_vc['enabled']
+        }
+        data_source_configs.append(vc_configs)
+        logger.info('Name : \t\t{}'.format(res_vc['nickname']))
         logger.info('Username : \t{}'.format(res_vc['credentials']['username']))
         logger.info('EntityID : \t{}'.format(res_vc['entity_id']))
         logger.info('ProxyID : \t{}'.format(res_vc['proxy_id']))
         logger.info('Enabled : \t{}'.format(res_vc['enabled']))
         logger.info('')
+
     logger.info('> NSX-T Managers:')
     nsxmgrs = [nsxmgr['entity_id'] for nsxmgr in ds_nsxmgr['results']]
     for nsx in nsxmgrs:
         res_nsx = vrni.get('/api/ni/data-sources/nsxt-managers/{}'.format(nsx))
+        nsx_configs = {
+            'type': 'nsx',
+            'nickname': res_nsx['nickname'],
+            'username': res_nsx['credentials']['username'],
+            'entity_id': res_nsx['entity_id'],
+            'proxy_id': res_nsx['proxy_id'],
+            'enabled': res_nsx['enabled']
+        }
+        data_source_configs.append(nsx_configs)
         logger.info('Name : \t\t{}'.format(res_nsx['nickname']))
         logger.info('Username : \t{}'.format(res_nsx['credentials']['username']))
         logger.info('EntityID : \t{}'.format(res_nsx['entity_id']))
@@ -475,8 +520,13 @@ def get_vrni_configs(config):
         logger.info('Enabled : \t{}'.format(res_nsx['enabled']))
         logger.info('')
 
-    # TODO: Return JSON value with parsed
-    return None
+    config_dump = {
+        'product': 'vrni',
+        'nodes': node_configs,
+        'datasources': data_source_configs,
+    }
+
+    return config_dump
 
 
 def get_vrli_configs(config):
@@ -700,7 +750,6 @@ if __name__ == "__main__":
         timestamp=TIMESTAMP
     )
     logger.info('\n--- C-Plane VIO config exported : {}'.format(vio_config_dump))
-    logger.info('')
     logger.info('--------------------------------------------------------------------')
     logger.info('### C-Plane vRealize Operations Manager')
     vrops_config_dump = export_config_to_file(
@@ -708,7 +757,6 @@ if __name__ == "__main__":
         timestamp=TIMESTAMP
     )
     logger.info('\n--- C-Plane vROps config exported : {}'.format(vrops_config_dump))
-    logger.info('')
     logger.info('--------------------------------------------------------------------')
     logger.info('### C-Plane vRealize Log Insight')
     vrli_config_dump = export_config_to_file(
@@ -716,11 +764,13 @@ if __name__ == "__main__":
         timestamp=TIMESTAMP
     )
     logger.info('\n--- C-Plane vRLI config exported : {}'.format(vrli_config_dump))
-    logger.info('')
     logger.info('--------------------------------------------------------------------')
     logger.info('### C-Plane vRealize Network Insight')
-    vrni_configs = get_vrni_configs(config=configs.get('c_plane'))
-    logger.info('')
+    vrni_config_dump = export_config_to_file(
+        dump_data=get_vrni_configs(config=configs.get('c_plane')),
+        timestamp=TIMESTAMP
+    )
+    logger.info('\n--- C-Plane vRNI config exported : {}'.format(vrni_config_dump))
     logger.info('--------------------------------------------------------------------')
     logger.info('')
     logger.info('>>> All configuration dumped !!')
