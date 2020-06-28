@@ -331,6 +331,7 @@ def get_vio_configs(config):
     vio_networks = viomgr.get('/apis/vio.vmware.com/v1alpha1/namespaces/openstack/vioclusters/viocluster1')
     vio_nodes = viomgr.get('/api/v1/nodes')
     vio_machines = viomgr.get('/apis/cluster.k8s.io/v1alpha1/namespaces/openstack/machines')
+    vio_deployments = viomgr.get('/apis/vio.vmware.com/v1alpha1/namespaces/openstack/osdeployments')
 
     cluster_network = vio_networks['spec']['cluster']
     ntp_server = vio_machines['items'][-1]['spec']['providerSpec']['value']['machineSpec']['ntpServers']
@@ -340,6 +341,7 @@ def get_vio_configs(config):
     for network in cluster_network['network_info']:
         netconf = {
             'network_type': network['type'],
+            'portgroup': network['networkName'],
             'ipaddress': network['static_config']['ip_ranges'],
             'netmask': network['static_config']['netmask'],
             'gateway': network['static_config']['gateway'],
@@ -348,10 +350,11 @@ def get_vio_configs(config):
         network_configs.append(netconf)
 
         logger.info('> {} Network'.format(network['type']))
-        logger.info('IP Ranges: \t{}'.format(network['static_config']['ip_ranges']))
-        logger.info('Netmask: \t{}'.format(network['static_config']['netmask']))
-        logger.info('Gateway: \t{}'.format(network['static_config']['gateway']))
-        logger.info('DNS Servers: \t{}'.format(network['static_config']['dns']))
+        logger.info('vSphere PortGroup: \t{}'.format(network['networkName']))
+        logger.info('IP Ranges: \t\t{}'.format(network['static_config']['ip_ranges']))
+        logger.info('Netmask: \t\t{}'.format(network['static_config']['netmask']))
+        logger.info('Gateway: \t\t{}'.format(network['static_config']['gateway']))
+        logger.info('DNS Servers: \t\t{}'.format(network['static_config']['dns']))
         logger.info('')
 
     logger.info('> NTP Servers: {}'.format(ntp_server))
@@ -371,12 +374,43 @@ def get_vio_configs(config):
         logger.info('  Internal IP: \t{}'.format(node['status']['addresses'][0]['address']))
         logger.info('  External IP: \t{}'.format(node['status']['addresses'][1]['address']))
 
+    logger.info('')
+
+    logger.info('>>> VIO Openstack Deployment configurations')
+    logger.info('private Endpoint: \t\t{}'.format(vio_deployments['items'][0]['spec']['openstack_endpoints']['private_vip']))
+    logger.info('Public Endpoint: \t\t{}'.format(vio_deployments['items'][0]['spec']['openstack_endpoints']['public_vip']))
+    logger.info('Public hostname: \t\t{}'.format(vio_deployments['items'][0]['spec']['public_hostname']))
+    logger.info('Deployment mode: \t\t{}'.format(vio_deployments['items'][0]['spec']['ha-enabled']))
+    logger.info('Region Name: \t\t\t{}'.format(vio_deployments['items'][0]['spec']['region_name']))
+    logger.info('Admin Domain Name: \t\t{}'.format(vio_deployments['items'][0]['spec']['admin_domain_name']))
+
+    os_services = [svc['service'] for svc in vio_deployments['items'][0]['spec']['services']]
+    logger.info('Deployed OpenStack Services: \t{}'.format(os_services))
+
+    deployment_configs = {
+        'endpoints': {
+            'private': {
+                'ipaddress': vio_deployments['items'][0]['spec']['openstack_endpoints']['private_vip']
+                },
+            'public': {
+                'ipaddress': vio_deployments['items'][0]['spec']['openstack_endpoints']['public_vip'],
+                'hostname': vio_deployments['items'][0]['spec']['public_hostname']
+                }
+            },
+        'deploy_mode': vio_deployments['items'][0]['spec']['ha-enabled'],
+        'region_name': vio_deployments['items'][0]['spec']['region_name'],
+        'admin_domain': vio_deployments['items'][0]['spec']['admin_domain_name']
+    }
+    logger.info('')
+
     # Parse data for filedump
     config_dump = {
         'product': 'vio',
         'network': network_configs,
         'ntp': ntp_server,
-        'node_networks': node_configs
+        'node_networks': node_configs,
+        'osdeployment': deployment_configs,
+        'openstack_services': os_services
     }
 
     return config_dump
