@@ -479,25 +479,27 @@ def get_vrops_configs(config):
 
 if __name__ == "__main__":
 
+    TIMESTAMP = datetime.now().strftime('%Y%m%d_%H%M%S')
+
     # Log file validations
     LOG_DIR = './logs'
     if not os.path.exists(LOG_DIR):
         os.mkdir(LOG_DIR)
-
-    LOG_FILENAME = '{}_nfvstack_collector.log'.format(datetime.now().strftime('%Y%m%d_%H%M%S'))
+    LOG_FILENAME = '{}_nfvstack_collector.log'.format(TIMESTAMP)
     LOG_FILE_PATH = os.path.join(LOG_DIR, LOG_FILENAME)
-    # Basic handler
-    _detail_formatting = '%(asctime)s : %(name)s - %(levelname)s : %(message)s'
-    logging.basicConfig(level=logging.DEBUG, format=_detail_formatting, filename=LOG_FILE_PATH)
-    logging.getLogger('modules').setLevel(level=logging.DEBUG)
-    # Console output handler
-    console = logging.StreamHandler()
-    # console_formatter = logging.Formatter('%(asctime)s : %(message)s')
-    # console.setFormatter(console_formatter)
-    # console.setLevel(logging.INFO)
 
+    # Basic log handler
+    _detail_formatting = '%(asctime)s : %(name)s - %(levelname)s : %(message)s'
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format=_detail_formatting,
+        filename=LOG_FILE_PATH)
+    logging.getLogger('modules').setLevel(level=logging.DEBUG)
+    console = logging.StreamHandler()
     logger = logging.getLogger(__name__)
     logging.getLogger(__name__).addHandler(console)
+
+    logger.info('>>> Logfile : [ {} ]'.format(LOG_FILE_PATH))
 
     # Input file validations
     CONFIG_FILE_PATH = './InputFile-NFVStack.yaml'
@@ -513,14 +515,14 @@ if __name__ == "__main__":
     logger.info('')
     logger.info('--------------------------------------------------------------------')
     logger.info('### M-Plane vCenter Server ')
-    # vcenter_configs = get_vcenter_configs(config=configs.get('management'))
+    vcenter_configs = get_vcenter_configs(config=configs.get('management'))
     logger.info('')
     logger.info('### C-Plane vCenter Server ')
-    # vcenter_configs = get_vcenter_configs(config=configs.get('c_plane'))
+    vcenter_configs = get_vcenter_configs(config=configs.get('c_plane'))
     logger.info('')
     logger.info('--------------------------------------------------------------------')
     logger.info('### C-Plane NSX-T Manager')
-    # nsxt_configs = get_nsxt_configs(config=configs.get('c_plane'))
+    nsxt_configs = get_nsxt_configs(config=configs.get('c_plane'))
     logger.info('')
     logger.info('--------------------------------------------------------------------')
     logger.info('### C-Plane VMware Integrated OpenStack')
@@ -529,7 +531,6 @@ if __name__ == "__main__":
     logger.info('--------------------------------------------------------------------')
     logger.info('### C-Plane vRealize Operations Manager')
     vrops_configs = get_vrops_configs(config=configs.get('c_plane'))
-    sys.exit(1)
     logger.info('')
     logger.info('--------------------------------------------------------------------')
     logger.info('### C-Plane vRealize Log Insight')
