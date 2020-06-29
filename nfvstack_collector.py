@@ -431,100 +431,55 @@ def get_vio_configs(config):
 
 def get_vrni_configs(config):
     cfg = config['vrni']
-    VRNI_IPADDR = cfg['hostname']
-    VRNI_USERNAME = cfg['user_name']
-    VRNI_PASSWORD = cfg['password']
-    VRNI_DOMAIN = cfg['domain']
-
-    logger.info('--- Collect data from vRNI: {}'.format(VRNI_IPADDR))
+    logger.info('--- Collect data from vRNI: {}'.format(cfg['hostname']))
     vrni = VRni(
-        ipaddress=VRNI_IPADDR,
-        username=VRNI_USERNAME,
-        password=VRNI_PASSWORD,
-        domain=VRNI_DOMAIN
+        ipaddress=cfg['hostname'],
+        username=cfg['user_name'],
+        password=cfg['password'],
+        domain=cfg['domain']
     )
-    version_info = vrni.get('/api/ni/info/version')
-    nodes_info = vrni.get('/api/ni/infra/nodes')
-    ds_vcenter = vrni.get('/api/ni/data-sources/vcenters')
-    ds_nsxmgr = vrni.get('/api/ni/data-sources/nsxt-managers')
 
-    logger.info('>>> Version information')
+    logger.info('\n>>> Version information')
     version_configs = {
-        'versions': {
-            'version': None,
-            'api_version': version_info['api_version']
-        }
+        'version': vrni.get_base_version(),
+        'api_version': vrni.get_api_version()
     }
-    logger.info('API Version : {0}'.format(version_info['api_version']))
+    for k, v in version_configs.items():
+        logger.info('{0}: \t{1}'.format(k, v))
+
+    logger.info('\n>>> Node configurations')
+    node_config = vrni.get_node_configs()
+    for line in node_config:
+        logger.info('{0}: \t{1}'.format(line.split(': ')[0], line.split(': ')[1]))
+
+    logger.info('\n>>> Node roles')
+    node_roles = vrni.get_node_role()
+    for node in node_roles:
+        for k, v in node.items():
+            logger.info('{0}: \t{1}'.format(k, v))
+
+    logger.info('\n>>> Data sources')
+    data_source_vcenter = vrni.get_vcenter_source()
+    data_source_nsx = vrni.get_nsx_source()
+    for ds in data_source_vcenter:
+        for k, v in ds.items():
+            logger.info('{0}: \t{1}'.format(k, v))
     logger.info('')
-
-    logger.info('>>> Nodes information')
-    node_configs = []
-    # Fetch all node ids configured
-    ni_node_ids = [i['id'] for i in nodes_info['results']]
-    for node_id in ni_node_ids:
-        node = vrni.get('/api/ni/infra/nodes/{}'.format(node_id))
-        node_conf = {
-            'node_ids': {
-                'id': node['id'],
-                'internal_id': node['node_id']
-            },
-            'ipaddress': node['ip_address'],
-            'deploy_role': node['node_type']
-        }
-        node_configs.append(node_conf)
-
-        logger.info('Node ID: {0} (internal: {1})'.format(node['id'], node['node_id']))
-        logger.info('IP Address: {}'.format(node['ip_address']))
-        logger.info('Deployment Role: {}'.format(node['node_type']))
-    logger.info('')
-
-    logger.info('>>> Data sources')
-    data_source_configs = []
-    logger.info('> vCenter Servers:')
-    vcenters = [vc['entity_id'] for vc in ds_vcenter['results']]
-    for vcenter in vcenters:
-        res_vc = vrni.get('/api/ni/data-sources/vcenters/{}'.format(vcenter))
-        vc_configs = {
-            'type': 'vcenter',
-            'nickname': res_vc['nickname'],
-            'username': res_vc['credentials']['username'],
-            'entity_id': res_vc['entity_id'],
-            'proxy_id': res_vc['proxy_id'],
-            'enabled': res_vc['enabled']
-        }
-        data_source_configs.append(vc_configs)
-        logger.info('Name : \t\t{}'.format(res_vc['nickname']))
-        logger.info('Username : \t{}'.format(res_vc['credentials']['username']))
-        logger.info('EntityID : \t{}'.format(res_vc['entity_id']))
-        logger.info('ProxyID : \t{}'.format(res_vc['proxy_id']))
-        logger.info('Enabled : \t{}'.format(res_vc['enabled']))
-        logger.info('')
-
-    logger.info('> NSX-T Managers:')
-    nsxmgrs = [nsxmgr['entity_id'] for nsxmgr in ds_nsxmgr['results']]
-    for nsx in nsxmgrs:
-        res_nsx = vrni.get('/api/ni/data-sources/nsxt-managers/{}'.format(nsx))
-        nsx_configs = {
-            'type': 'nsx',
-            'nickname': res_nsx['nickname'],
-            'username': res_nsx['credentials']['username'],
-            'entity_id': res_nsx['entity_id'],
-            'proxy_id': res_nsx['proxy_id'],
-            'enabled': res_nsx['enabled']
-        }
-        data_source_configs.append(nsx_configs)
-        logger.info('Name : \t\t{}'.format(res_nsx['nickname']))
-        logger.info('Username : \t{}'.format(res_nsx['credentials']['username']))
-        logger.info('EntityID : \t{}'.format(res_nsx['entity_id']))
-        logger.info('ProxyID : \t{}'.format(res_nsx['proxy_id']))
-        logger.info('Enabled : \t{}'.format(res_nsx['enabled']))
-        logger.info('')
+    for ds in data_source_nsx:
+        for k, v in ds.items():
+            logger.info('{0}: \t{1}'.format(k, v))
 
     config_dump = {
         'product': 'vrni',
-        'nodes': node_configs,
-        'datasources': data_source_configs,
+        'versions': version_configs,
+        'nodes': {
+            'network': node_config,
+            'role': node_roles
+        },
+        'datasources': {
+            'vcenter': data_source_vcenter,
+            'nsx': data_source_nsx
+        }
     }
 
     return config_dump
