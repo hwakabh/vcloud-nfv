@@ -1,9 +1,8 @@
-import requests
 import json
-
 import logging
 logger = logging.getLogger(__name__)
 
+import requests
 import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 urllib3.disable_warnings(InsecureRequestWarning)
@@ -90,8 +89,11 @@ class VRni():
         return ret['api_version']
 
     def get_node_configs(self):
+        node_configs = {}
         ret = self.run_ssh_command(command='show-config')
-        return [line.decode('utf-8') for line in ret[3:]][:-1]
+        for line in [line.decode('utf-8') for line in ret[3:]][:-1]:
+            node_configs[line.split(': ')[0]] = line.split(': ')[1]
+        return node_configs
 
     def get_node_role(self):
         node_roles = []

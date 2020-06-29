@@ -339,9 +339,9 @@ def get_vrni_configs(config):
         logger.info('{0}: \t{1}'.format(k, v))
 
     logger.info('\n>>> Node configurations')
-    node_config = vrni.get_node_configs()
-    for line in node_config:
-        logger.info('{0}: \t{1}'.format(line.split(': ')[0], line.split(': ')[1]))
+    node_configs = vrni.get_node_configs()
+    for k, v in node_configs.items():
+        logger.info('{0}: {1}'.format(k, v))
 
     logger.info('\n>>> Node roles')
     node_roles = vrni.get_node_role()
@@ -364,7 +364,7 @@ def get_vrni_configs(config):
         'product': 'vrni',
         'versions': version_configs,
         'nodes': {
-            'network': node_config,
+            'network': node_configs,
             'role': node_roles
         },
         'datasources': {
