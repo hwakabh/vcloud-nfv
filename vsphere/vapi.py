@@ -74,6 +74,7 @@ class VApi():
                 {'device': vnic.device, 'portgroup': vnic.portgroup,
                 'dhcp': vnic.spec.ip.dhcp, 'ipAddress': vnic.spec.ip.ipAddress,
                 'subnetMask': vnic.spec.ip.subnetMask,
+                'defautlGateway': vnic.spec.ipRouteSpec.ipRouteConfig.defaultGateway,
                 'mac': vnic.spec.mac, 'mtu': vnic.spec.mtu})
             host_vnics.append(vnic_info)
         return host_vnics
