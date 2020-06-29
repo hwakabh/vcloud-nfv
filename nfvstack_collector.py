@@ -487,79 +487,47 @@ def get_vrni_configs(config):
 
 def get_vrli_configs(config):
     cfg = config['vrli']
-    VRLI_IPADDR = cfg['vip_address']
-    VRLI_USERNAME = cfg['user_name']
-    VRLI_PASSWORD = cfg['password']
-    VRLI_PROVIDER = 'Local'
-
-    logger.info('--- Collect data from vRLI: {}'.format(VRLI_IPADDR))
+    logger.info('--- Collect data from vRLI: {}'.format(cfg['vip_address']))
     vrli = VRli(
-        ipaddress=VRLI_IPADDR,
-        username=VRLI_USERNAME,
-        password=VRLI_PASSWORD,
-        provider=VRLI_PROVIDER
+        ipaddress=cfg['vip_address'],
+        username=cfg['user_name'],
+        password=cfg['password'],
+        provider='Local'
     )
-    version_info = vrli.get('/api/v1/version')
-    cluster_info = vrli.get('/api/v1/cluster/vips')
-    node_info = vrli.get('/api/v1/cluster/nodes')
-    ntp_info = vrli.get('/api/v1/time/config')
-    cp_info = vrli.get('/api/v1/content/contentpack/list')
 
-    logger.info('>>> Version information')
-    version_configs = {
-        'version': version_info['version'],
-        'release_type': version_info['releaseName']
-    }
-    logger.info('{0} (Release Type: {1})'.format(version_info['version'], version_info['releaseName']))
-    logger.info('')
+    logger.info('\n>>> Version information')
+    version_configs = vrli.get_version()
+    for k, v in version_configs.items():
+        logger.info('{0}: {1}'.format(k, v))
 
-    logger.info('>>> Deployment configurations ...')
-    logger.info('> vIP : {0} (FQDN : {1})'.format(cluster_info['vips'][0]['ipAddress'], cluster_info['vips'][0]['fqdn']))
-    logger.info('')
-    logger.info('> nodes')
-    cluster_configs = []
-    for node in node_info['nodes']:
-        node_conf = {
-            'node_id': node['id'],
-            'ipaddress': node['ip'],
-            'netmask': node['netmask'],
-            'gateway': node['gateway'],
-            'dns': node['dnsServers'],
-            'ntp': ntp_info['ntpConfig']['ntpServers']
-        }
-        cluster_configs.append(node_conf)
-        logger.info('Node ID: {}'.format(node['id']))
-        logger.info('IP Address: {}'.format(node['ip']))
-        logger.info('Subnet: {}'.format(node['netmask']))
-        logger.info('Gateway: {}'.format(node['gateway']))
-        logger.info('DNS Server: {}'.format(node['dnsServers']))
-    logger.info('NTP Servers : {}'.format(ntp_info['ntpConfig']['ntpServers']))
-    logger.info('')
+    logger.info('\n>>> Cluster configurations')
+    cluster_configs = vrli.get_cluster_configs()
+    ntp_severs = vrli.get_ntp_server()
+    for k, v in cluster_configs.items():
+        logger.info('{0}: {1}'.format(k, v))
+    logger.info('NTP Servers: {}'.format(ntp_severs))
 
-    logger.info('>>> Content Pack configured ...')
-    content_packs = []
-    for cp in cp_info['contentPackMetadataList']:
-        content_pack = {
-            'name': cp['name'],
-            'format_version': cp['formatVersion'],
-            'content_version': cp['contentVersion']
-        }
-        content_packs.append(content_pack)
-        logger.info('{0} (formatVersion: {1}, contentVersion: {2})'.format(cp['name'], cp['formatVersion'], cp['contentVersion']))
+    logger.info('\n>>> Node configurations')
+    node_configs = vrli.get_node_configs()
+    for node in node_configs:
+        for k, v in node.items():
+            logger.info('{0}: {1}'.format(k, v))
+
+    logger.info('\n>>> Content Pack configured ...')
+    cp_configs = vrli.get_contents_pack_configs()
+    for cp in cp_configs:
+        logger.info('{0} (Version: {1} )'.format(cp['name'], cp['content_version']))
 
     config_dump = {
         'product': 'vrli',
         'version': version_configs,
-        'network': {
-            'vip': {
-                'ipaddress': cluster_info['vips'][0]['ipAddress'],
-                'fqdn': cluster_info['vips'][0]['ipAddress']
-                },
-            'nodes': cluster_configs
+        'cluster': {
+            'vip': cluster_configs,
+            'ntp_server': ntp_severs
         },
-        'content_packs': content_packs
+        'nodes': node_configs,
+        'content_packs': cp_configs
     }
-
     return config_dump
 
 
