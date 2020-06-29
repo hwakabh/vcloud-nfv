@@ -20,10 +20,11 @@ def read_config_from_file(conf_file_path):
 
 
 def export_config_to_file(dump_data, timestamp):
-    # TODO: wrap as directory for store dump data
-    # --- YYYYMMDD_nfvstack/*.json
+    EXPORT_PATH = './{}_nfvconfig'.format(timestamp)
+    if not os.path.exists(EXPORT_PATH):
+        os.mkdir(EXPORT_PATH)
     target_product = dump_data['product']
-    dump_file_name = '{0}_{1}_config.json'.format(timestamp, target_product)
+    dump_file_name = '{0}/{1}_{2}_config.json'.format(EXPORT_PATH, timestamp, target_product)
     with open(dump_file_name, 'w') as f:
         json.dump(dump_data, f, indent=3)
     return dump_file_name
@@ -772,8 +773,7 @@ if __name__ == "__main__":
     )
     logger.info('\n--- C-Plane vRNI config exported : {}'.format(vrni_config_dump))
     logger.info('--------------------------------------------------------------------')
-    logger.info('')
     logger.info('>>> All configuration dumped !!')
-    # TODO: print path of logfile and dumped file as stdout
+    logger.info('Dumped configuration files : [ ./{}_nfvconfig/*_config.json ]'.format(TIMESTAMP))
 
     sys.exit(0)
