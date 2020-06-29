@@ -5,7 +5,8 @@ import json
 from datetime import datetime
 import logging
 
-from vcsa.vcsa import VCenter, VApi, EsxiSoapParser
+from vsphere.vcsa import VCenter
+from vsphere.vapi import VApi
 from nsxt.nsxt import Nsxt
 from vio.vio import Vio
 from vrops.vrops import VROps
@@ -32,139 +33,88 @@ def export_config_to_file(dump_data, timestamp):
 
 def get_vcenter_configs(config):
     cfg = config['vcenter']
-    IPADDRESS, USERNAME, PASSWORD = cfg['ip_address'], cfg['user_name'], cfg['sso_password']
+    logger.info('--- Collect data from vSphere vCSA: {}'.format(cfg['ip_address']))
+    vc = VCenter(
+        ipaddress=cfg['ip_address'],
+        username=cfg['user_name'],
+        password=cfg['sso_password']
+    )
+    vapi = VApi(
+        ipaddress=cfg['ip_address'],
+        username=cfg['user_name'],
+        password=cfg['sso_password']
+    )
 
-    logger.info('------ Starting config_dump for vCSA: {}'.format(IPADDRESS))
-    # Call vSphere REST-API to fetch vCSA config
-    vc = VCenter(ipaddress=IPADDRESS, username=USERNAME, password=PASSWORD)
-    vcsa_version = vc.get('/rest/appliance/system/version')
-    vcsa_networks = vc.get('/rest/appliance/networking/interfaces')
-    vcsa_hostnames = vc.get('/rest/appliance/networking/dns/hostname')
-    vcsa_dns = vc.get('/rest/appliance/networking/dns/servers')
-    vcsa_ntp = vc.get('/rest/appliance/ntp')
-    vcsa_ssh_status = vc.get('/rest/appliance/access/ssh')
+    logger.info('\n>>> Version configurations')
+    version_configs = vc.get_version()
+    for k, v in version_configs.items():
+        logger.info('{0}: {1}'.format(k, v))
 
-    vcsa_dc = vc.get('/rest/vcenter/datacenter')
-    vcsa_clusters = vc.get('/rest/vcenter/cluster')
+    logger.info('\n>>> Appliance configurations')
+    appliance_configs = vc.get_appliance_configs()
+    for k, v in appliance_configs.items():
+        logger.info('{0}: \t{1}'.format(k, v))
 
-    vcsa_ha = vc.post('/rest/vcenter/vcha/cluster?action=get')
+    logger.info('\n>>> vCHA configuration')
+    vcha_configs = vc.get_vcha_configs()
+    for k, v in vcha_configs.items():
+        logger.info('{0}: \t{1}'.format(k, v))
 
-    # Call vAPI to get ESXi host configs
-    vapi = VApi(ipaddress=IPADDRESS, username=USERNAME, password=PASSWORD)
-    # Retrieve all hostdata prior to compare with response of vSphere REST-API
-    esxis = vapi.get_host_objects()
-    vds_configs = vapi.get_dvs_objects()
+    logger.info('\n>>> Datacenters configuration')
+    datacenter_configs = vc.get_datacenter_list()
+    print(datacenter_configs)
 
-    logger.info('>>> Appliance configurations ...')
-    logger.info('Version: \t{0} (Build : {1})'.format(vcsa_version['value']['version'], vcsa_version['value']['build']))
-    logger.info('IP address: \t{}'.format(vcsa_networks['value'][0]['ipv4']['address']))
-    logger.info('Subnet Prefix: \t{}'.format(vcsa_networks['value'][0]['ipv4']['prefix']))
-    logger.info('Gateway: \t{}'.format(vcsa_networks['value'][0]['ipv4']['default_gateway']))
-    logger.info('Hostname: \t{}'.format(vcsa_hostnames['value']))
-    logger.info('DNS Servers: \t{}'.format(vcsa_dns['value']['servers']))
-    logger.info('NTP Servers: \t{}'.format(vcsa_ntp['value']))
-    logger.info('SSH Services: \t{}'.format('Running' if vcsa_ssh_status['value'] == True else 'Not Running'))
-    logger.info('')
+    logger.info('\n>>> Host Cluster configuration')
+    cluster_configs = vc.get_cluster_configs()
+    for cluster in cluster_configs:
+        for k, v in cluster.items():
+            logger.info('{0}: \t{1}'.format(k, v))
+        logger.info('Hosts: \t{}'.format(
+            vc.get_host_list(cluster_moref=cluster['moref']))
+        )
+        logger.info('')
 
-    logger.info('>>> vCHA configurations ...')
-    nodes = ['node1', 'node2', 'witness']
-    logger.info('Mode : {}'.format(vcsa_ha['value']['mode']))
-    for node in nodes:
-        logger.info('> vCHA: {}'.format(node))
-        logger.info('  IP Address: {}'.format(vcsa_ha['value'][node]['ha_ip']['ipv4']['address']))
-        logger.info('  Subnetk: {}'.format(vcsa_ha['value'][node]['ha_ip']['ipv4']['subnet_mask']))
-        logger.info('  VM Name: {}'.format(vcsa_ha['value'][node]['runtime']['placement']['vm_name']))
-
-    logger.info('')
-
-    for dc in vcsa_dc['value']:
-        logger.info('>>> Datacenter: {}'.format(dc['name']))
-    for cluster in vcsa_clusters['value']:
-        logger.info('>>> Cluster : {}'.format(cluster['name']))
-        logger.info('DRS Enabled:\t{}'.format(cluster['drs_enabled']))
-        logger.info('HA Enabled:\t{}'.format(cluster['ha_enabled']))
-        logger.info('>>>>>> Managed ESXi Host configs')
-        vcsa_hosts = vc.get('/rest/vcenter/host?filter.clusters={}'.format(cluster['cluster']))
-        for host in vcsa_hosts['value']:
-            esxi_parser = EsxiSoapParser()
-            host_info = dict()
-            logger.info('>>>>>>>>> {}'.format(host['name']))
-            target_host = [esxi for esxi in esxis if esxi.name == host['name']][0]
-            version, build, apiversion = esxi_parser.get_host_system_version(target_host)
-            logger.info('Host Version: {0} (Build {1})'.format(version, build))
-            logger.info('API Version: {}'.format(apiversion))
-            host_pnics = esxi_parser.get_host_pnics(target_host)
-            host_vnics = esxi_parser.get_host_vnics(target_host)
-            host_vswitches = esxi_parser.get_host_vswitches(target_host)
-            host_portgroups = esxi_parser.get_host_portgroups(target_host)
-            host_info.update({
-                'pnics': host_pnics,
-                'vswitches': host_vswitches,
-                'portgroups': host_portgroups,
-                'vnics': host_vnics
-            })
-            logger.info('vmnics:')
-            for vmnic in host_pnics:
-                logger.info('\t[ {0} ] MAC addr= {1}, driver={2}'.format(vmnic['device'], vmnic['mac'], vmnic['driver']))
-            logger.info('vmkernel ports:')
-            for vmk in host_vnics:
-                # TODO: merge info about vmk gateway
-                logger.info('\t[ {0} ] IP Address= {1}, Subnet Mask={2}, MAC addr={3}, MTU={4}'.format(vmk['device'], vmk['ipAddress'], vmk['subnetMask'], vmk['mac'], vmk['mtu']))
-            logger.info('vSwitch(vSS):')
-            for vss in host_vswitches:
-                logger.info('\t[ {0} ] Uplinks={1}, PortGroups={2}, MTU={3}'.format(vss['name'], vss['pnics'], vss['portgroups'], vss['mtu']))
-            logger.info('portgroups:')
-            for pg in host_portgroups:
-                logger.info('\t[ {0} ] VLAN={1}, vSwitchName={2}'.format(pg['name'], pg['vlanId'], pg['vswitchName']))
-
-            nameservers, searchpath = esxi_parser.get_host_dns_config(target_host)
-            logger.info('DNS Servers:')
-            for ns in nameservers:
-                logger.info('  {}'.format(ns))
-            logger.info('DNS Search Path:')
-            for sp in searchpath:
-                logger.info('  {}'.format(sp))
-            ntp_severs = esxi_parser.get_host_ntp_config(target_host)
-            logger.info('NTP servers:')
-            for ntp in ntp_severs:
-                logger.info('  {}'.format(ntp))
-            logger.info('SSH service : {}'.format(esxi_parser.get_host_ssh_status(target_host)))
+    logger.info('\n>>> Host configurations')
+    cluster_configs = vapi.get_cluster_configs()
+    for cluster in cluster_configs:
+        logger.info('Cluster: {}'.format(cluster['name']))
+        for host_config in cluster['hosts']:
+            logger.info(json.dumps(host_config, indent=2))
             logger.info('')
-
-    logger.info('>>> vDS configs')
-    for dvs in vds_configs:
-        logger.info('Name : {}'.format(dvs.name))
-        logger.info('Configured hosts: ')
-        for member_host in dvs.config.host:
-            logger.info('  {}'.format(member_host.config.host.name))
-        logger.info('dvPortGroups: ')
-        for dvportgroup in dvs.config.uplinkPortgroup:
-            logger.info('  {}'.format(dvportgroup.name))
-        logger.info('Uplinks configured: ')
-        for uplink in dvs.config.uplinkPortPolicy.uplinkPortName:
-            logger.info('  {}'.format(uplink))
-        logger.info('Port Groups: ')
-        for pg in dvs.portgroup:
-            if type(pg.config.defaultPortConfig.vlan.vlanId) == int:
-                logger.info('  {0} ( VLAN: {1} )'.format(pg.name, pg.config.defaultPortConfig.vlan.vlanId))
         logger.info('')
 
-    logger.info('>>> vSAN Cluster configs')
-    for vsan_host in esxis:
-        logger.info('>>>>>> {}'.format(vsan_host.name))
-        logger.info('Cluster UUID: {}'.format(vsan_host.configManager.vsanSystem.config.clusterInfo.uuid))
-        logger.info('Node UUID: {}'.format(vsan_host.configManager.vsanSystem.config.clusterInfo.nodeUuid))
-        disk_config = vsan_host.config.vsanHostConfig.storageInfo.diskMapping
-        logger.info('Disk Group: {}'.format(disk_config[0].ssd.vsanDiskInfo.vsanUuid))
-        for disk in disk_config:
-            logger.info('Disk Claimed: ')
-            logger.info('> Flash')
-            logger.info('  {}'.format(disk.ssd.displayName))
-            logger.info('> HDD')
-            for non_ssd in disk.nonSsd:
-                logger.info('  {}'.format(non_ssd.displayName))
-        logger.info('')
+    logger.info('\n>>> vSAN Cluster configuration')
+    print(esxis)
+    cluster_list = vc.get_cluster_list()
+    esxi_configs = []
+    hostlist = vc.get_host_list(cluster=esxi)
+    vsan_cluster_configs = vapi.get_vsan_cluster_configs(
+        esxi_hosts=hostlist
+    )
+    print(vsan_cluster_configs)
+    sys.exit(1)
 
+    # for vsan_host in esxis:
+    #     logger.info('>>>>>> {}'.format(vsan_host.name))
+    #     logger.info('Cluster UUID: {}'.format(vsan_host.configManager.vsanSystem.config.clusterInfo.uuid))
+    #     logger.info('Node UUID: {}'.format(vsan_host.configManager.vsanSystem.config.clusterInfo.nodeUuid))
+    #     disk_config = vsan_host.config.vsanHostConfig.storageInfo.diskMapping
+    #     logger.info('Disk Group: {}'.format(disk_config[0].ssd.vsanDiskInfo.vsanUuid))
+    #     for disk in disk_config:
+    #         logger.info('Disk Claimed: ')
+    #         logger.info('> Flash')
+    #         logger.info('  {}'.format(disk.ssd.displayName))
+    #         logger.info('> HDD')
+    #         for non_ssd in disk.nonSsd:
+    #             logger.info('  {}'.format(non_ssd.displayName))
+    #     logger.info('')
+
+    logger.info('\n>>> vDS configuration')
+    vds_configs = vapi.get_vds_configs()
+    for vds in vds_configs:
+        for k, v in vds.items():
+            logger.info('{0}: \t{1}'.format(k, v))
+        logger.info('')
 
     # TODO: Return JSON value with parsed
     return None
@@ -172,7 +122,7 @@ def get_vcenter_configs(config):
 
 def get_nsxt_configs(config):
     cfg = config['nsxt']
-    logger.info('--- Collect data from VIO Manager: {}'.format(cfg['ip_address']))
+    logger.info('--- Collect data from NSX-T Manager: {}'.format(cfg['ip_address']))
     nsx = Nsxt(
         ipaddress=cfg['ip_address'],
         username=cfg['admin_user_name'],
