@@ -533,89 +533,49 @@ def get_vrli_configs(config):
 
 def get_vrops_configs(config):
     cfg = config['vrops']
-    VROPS_IPADDR = cfg['master_node_ip']
-    VROPS_USERNAME = cfg['node_user_name']
-    VROPS_PASSWORD = cfg['node_admin_password']
-
-    logger.info('--- Collect data from vROps: {}'.format(VROPS_IPADDR))
+    logger.info('--- Collect data from vROps: {}'.format(cfg['master_node_ip']))
     vrops = VROps(
-        ipaddress=VROPS_IPADDR,
-        username=VROPS_USERNAME,
-        password=VROPS_PASSWORD
+        ipaddress=cfg['master_node_ip'],
+        username=cfg['node_user_name'],
+        password=cfg['node_admin_password']
     )
 
     # Fetch all info from CaSA API
     cluster_conf = vrops.casa_get('/casa/cluster/config')
     ip_conf = vrops.casa_get('/casa/node/status')
     # Fetch all info from Suite API
-    versions = vrops.get('/suite-api/api/versions/current')
-    mp_info = vrops.get('/suite-api/api/solutions')
+    # versions = vrops.get('/suite-api/api/versions/current')
+    # mp_info = vrops.get('/suite-api/api/solutions')
     adapter_info = vrops.get('/suite-api/api/adapters')
 
-    logger.info('>>> Version information')
-    version_configs = {
-        'version': versions['releaseName'],
-        'release_date': versions['humanlyReadableReleaseDate']
-    }
-    logger.info('{}'.format(versions['releaseName']))
-    logger.info('Release Date: {}'.format(versions['humanlyReadableReleaseDate']))
-    logger.info('')
+    logger.info('\n>>> Version information')
+    version_configs = vrops.get_version()
+    for k, v in version_configs.items():
+        logger.info('{0}: {1}'.format(k, v))
 
-    logger.info('>>> Cluster configurations')
-    cluster_configs = []
-    for node in cluster_conf['slices']:
-        node_conf = {
-            'nodename': node['node_name'],
-            'deploy_role': node['node_type'],
-            'ipaddress': ip_conf['address'],
-            'netmask': node['network_properties']['network1_netmask'],
-            'gateway': node['network_properties']['default_gateway'],
-            'dns': {
-                'nameservers': node['network_properties']['domain_name_servers'],
-                'domain_name': node['network_properties']['domain_name']
-            },
-            'ntp': node['ntp_servers']
-        }
-        cluster_configs.append(node_conf)
-
-        logger.info('Node: {}'.format(node['node_name']))
-        logger.info('Deployment Role: {}'.format(node['node_type']))
-        logger.info('IP Address: \t{}'.format(ip_conf['address']))
-        logger.info('Netmask: {}'.format(node['network_properties']['network1_netmask']))
-        logger.info('Gateway: {}'.format(node['network_properties']['default_gateway']))
-        logger.info('DNS Servers: \t{}'.format(node['network_properties']['domain_name_servers']))
-        logger.info('Domain Name: \t{}'.format(node['network_properties']['domain_name']))
-        logger.info('NTP Servers: \t{}'.format(node['ntp_servers']))
+    logger.info('\n>>> Cluster configurations')
+    cluster_configs = vrops.get_cluster_configs()
+    for node in cluster_configs:
+        for k, v in node.items():
+            logger.info('{0}: {1}'.format(k, v))
         logger.info('')
 
-    logger.info('>>> Installed Management Packs')
-    management_packs = []
-    for mp in mp_info['solution']:
-        mp = {
-            'name': mp['name'],
-            'version': mp['version']
-        }
-        management_packs.append(mp)
-        logger.info('{0} (Version : {1})'.format(mp['name'], mp['version']))
+    logger.info('\n>>> Installed Management Packs')
+    mp_configs = vrops.get_management_pack_configs()
+    for mp in mp_configs:
+        logger.info('{0} ( Version: {1} )'.format(mp['name'], mp['version']))
 
-    logger.info('')
-
-    logger.info('>>> Configured Adapters')
-    adapters = []
-    for adapter in adapter_info['adapterInstancesInfoDto']:
-        adptr = {
-            'name': adapter['resourceKey']['name'],
-            'id': adapter['id']
-        }
-        adapters.append(adptr)
-        logger.info('ID: {0}, Name: {1}'.format(adapter['id'], adapter['resourceKey']['name']))
+    logger.info('\n>>> Configured Adapters')
+    adapter_configs = vrops.get_adpater_configs()
+    for adapter in adapter_configs:
+        logger.info('ID: {0} ( {1} )'.format(adapter['id'], adapter['name']))
 
     config_dump = {
         'product': 'vrops',
         'versions': version_configs,
         'network': cluster_configs,
-        'mangement_packs': management_packs,
-        'adapters': adapters
+        'mangement_packs': mp_configs,
+        'adapters': adapter_configs
     }
     return config_dump
 
