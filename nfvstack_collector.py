@@ -319,113 +319,52 @@ def get_nsxt_configs(config):
 
 def get_vio_configs(config):
     cfg = config['vio']
-    VIO_MGR = cfg['management_ip']
-    VIO_USERNAME = cfg['user_name']
-    VIO_PASSWORD = cfg['vio_admin_password']
-
-    logger.info('--- Collect data from VIO Manager: {}'.format(VIO_MGR))
+    logger.info('--- Collect data from VIO Manager: {}'.format(cfg['management_ip']))
     viomgr = Vio(
-        ipaddress=VIO_MGR,
-        username=VIO_USERNAME,
-        password=VIO_PASSWORD
+        ipaddress=cfg['management_ip'],
+        username=cfg['user_name'],
+        password=cfg['vio_admin_password']
     )
-    vio_networks = viomgr.get('/apis/vio.vmware.com/v1alpha1/namespaces/openstack/vioclusters/viocluster1')
-    vio_nodes = viomgr.get('/api/v1/nodes')
-    vio_machines = viomgr.get('/apis/cluster.k8s.io/v1alpha1/namespaces/openstack/machines')
-    vio_deployments = viomgr.get('/apis/vio.vmware.com/v1alpha1/namespaces/openstack/osdeployments')
-    vio_backend_vc = viomgr.get('/apis/vio.vmware.com/v1alpha1/namespaces/openstack/vcenters/vcenter1')
-    vio_backend_nsx = viomgr.get('/apis/vio.vmware.com/v1alpha1/namespaces/openstack/nsxs/nsx1')
 
-    cluster_network = vio_networks['spec']['cluster']
-    ntp_server = vio_machines['items'][-1]['spec']['providerSpec']['value']['machineSpec']['ntpServers']
+    logger.info('\n>>> Cluster network configurations')
+    network_configs = viomgr.get_network_configs()
+    for network in network_configs:
+        for k, v in network.items():
+            logger.info('{0}: {1}'.format(k, v))
+        logger.info('')
+    ntp_servers = viomgr.get_ntp_servers()
+    logger.info('NTP servers: {}'.format(ntp_servers))
 
-    logger.info('>>> Network information ...')
-    network_configs = []
-    for network in cluster_network['network_info']:
-        netconf = {
-            'network_type': network['type'],
-            'portgroup': network['networkName'],
-            'ipaddress': network['static_config']['ip_ranges'],
-            'netmask': network['static_config']['netmask'],
-            'gateway': network['static_config']['gateway'],
-            'dns': network['static_config']['dns'],
-        }
-        network_configs.append(netconf)
-
-        logger.info('> {} Network'.format(network['type']))
-        logger.info('vSphere PortGroup: \t{}'.format(network['networkName']))
-        logger.info('IP Ranges: \t\t{}'.format(network['static_config']['ip_ranges']))
-        logger.info('Netmask: \t\t{}'.format(network['static_config']['netmask']))
-        logger.info('Gateway: \t\t{}'.format(network['static_config']['gateway']))
-        logger.info('DNS Servers: \t\t{}'.format(network['static_config']['dns']))
+    logger.info('\n>>> Nodes configurations')
+    node_configs = viomgr.get_node_configs()
+    for node in node_configs:
+        for k, v in node.items():
+            logger.info('{0}: \t{1}'.format(k, v))
         logger.info('')
 
-    logger.info('> NTP Servers: {}'.format(ntp_server))
-    logger.info('')
-    logger.info('> manager/controller nodes')
-    node_configs = []
-    for node in vio_nodes['items']:
-        nodeconf = {
-            'name': node['metadata']['name'],
-            'pod_cidr': node['spec']['podCIDR'],
-            'internal_ip': node['status']['addresses'][0]['address'],
-            'external_ip': node['status']['addresses'][1]['address'],
-        }
-        node_configs.append(nodeconf)
-        logger.info('Nodename: \t{}'.format(node['metadata']['name']))
-        logger.info('  Pod CIDR: \t{}'.format(node['spec']['podCIDR']))
-        logger.info('  Internal IP: \t{}'.format(node['status']['addresses'][0]['address']))
-        logger.info('  External IP: \t{}'.format(node['status']['addresses'][1]['address']))
+    logger.info('\n>>> Openstack Deployment configurations')
+    osdeployment_configs = viomgr.get_osdeployment_configs()
+    for osdeployment in osdeployment_configs:
+        for k, v in osdeployment.items():
+            logger.info('{0}: \t{1}'.format(k, v))
+        logger.info('')
 
-    logger.info('')
-
-    logger.info('>>> VIO Openstack Deployment configurations')
-    deployment_configs = {
-        'endpoints': {
-            'private': {
-                'ipaddress': vio_deployments['items'][0]['spec']['openstack_endpoints']['private_vip']
-                },
-            'public': {
-                'ipaddress': vio_deployments['items'][0]['spec']['openstack_endpoints']['public_vip'],
-                'hostname': vio_deployments['items'][0]['spec']['public_hostname']
-                }
-            },
-        'deploy_mode': vio_deployments['items'][0]['spec']['ha-enabled'],
-        'region_name': vio_deployments['items'][0]['spec']['region_name'],
-        'admin_domain': vio_deployments['items'][0]['spec']['admin_domain_name']
-    }
-
-    logger.info('private Endpoint: \t\t{}'.format(vio_deployments['items'][0]['spec']['openstack_endpoints']['private_vip']))
-    logger.info('Public Endpoint: \t\t{}'.format(vio_deployments['items'][0]['spec']['openstack_endpoints']['public_vip']))
-    logger.info('Public hostname: \t\t{}'.format(vio_deployments['items'][0]['spec']['public_hostname']))
-    logger.info('HA mode: \t\t\t{}'.format(vio_deployments['items'][0]['spec']['ha-enabled']))
-    logger.info('Region Name: \t\t\t{}'.format(vio_deployments['items'][0]['spec']['region_name']))
-    logger.info('Admin Domain Name: \t\t{}'.format(vio_deployments['items'][0]['spec']['admin_domain_name']))
-
-    os_services = [svc['service'] for svc in vio_deployments['items'][0]['spec']['services']]
-    logger.info('Deployed OpenStack Services: \t{}'.format(os_services))
-    logger.info('')
-
-    logger.info('>>> Configured backends')
-    backend_configs = {
-        'vsphere': vio_backend_vc['spec']['hostname'],
-        'nsx': vio_backend_nsx['spec']['hostname']
-    }
-    logger.info('vSphere: \t{}'.format(vio_backend_vc['spec']['hostname']))
-    logger.info('NSX-T: \t\t{}'.format(vio_backend_nsx['spec']['hostname']))
-    logger.info('')
+    logger.info('\n>>> Configured backends')
+    backend_configs = viomgr.get_backends_configs()
+    for k, v in backend_configs.items():
+        logger.info('{0}: {1}'.format(k, v))
 
     # Parse data for filedump
     config_dump = {
         'product': 'vio',
-        'network': network_configs,
-        'ntp': ntp_server,
-        'node_networks': node_configs,
-        'osdeployment': deployment_configs,
-        'openstack_services': os_services,
-        'vio_backends': backend_configs
+        'cluster': {
+            'networks': network_configs,
+            'ntp_servers': ntp_servers
+        },
+        'nodes': node_configs,
+        'osdeployment': osdeployment_configs,
+        'backends': backend_configs
     }
-
     return config_dump
 
 
