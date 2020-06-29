@@ -130,7 +130,6 @@ class VApi():
             })
         return host_configs
 
-
     def _get_cluster_objects(self):
         ret = self._establish_session()
         cluster_view = ret.viewManager.CreateContainerView(
@@ -149,32 +148,35 @@ class VApi():
         for cluster in cluster_view:
             cluster_configs.append({
                 'name': cluster.name,
-                'hosts': self._get_esxi_configs(esxis=cluster.host)
+                'hosts': self._get_esxi_configs(esxis=cluster.host),
+                'vsan': self._get_vsan_cluster_configs(esxis=cluster.host)
             })
         return cluster_configs
 
     ## class methods for vSAN
-    def _get_vsan_cluster_disk_configs(self, esxi):
+    def _get_vsan_disk_configs(self, esxi):
         disk_map = esxi.config.vsanHostConfig.storageInfo.diskMapping
         vsan_cluster_disk_configs = {
             'disk_group': disk_map[0].ssd.vsanDiskInfo.vsanUuid,
             'disks': []
         }
         for disk in disk_map:
-            vsan_cluster_disk_configs.append({
+            vsan_cluster_disk_configs['disks'].append({
                 'flash': disk.ssd.displayName,
                 'hdd': [non_ssd.displayName for non_ssd in disk.nonSsd]
             })
         return vsan_cluster_disk_configs
 
-    def get_vsan_cluster_configs(self, esxi_hosts):
+    def _get_vsan_cluster_configs(self, esxis):
         vsan_cluster_configs = []
-        for vsan_node in esxi_hosts:
+        for esxi in esxis:
             vsan_cluster_configs.append({
-                'name': vsan_node.name,
-                'cluster_uuid': vsan_node.configManager.vsanSystem.config.clusterInfo.uuid,
-                'node_uuid': vsan_node.configManager.vsanSystem.config.clusterInfo.nodeUuid,
-                'disk_groups': self._get_vsan_cluster_disk_configs(esxi=vsan_node)
+                'name': esxi.name,
+                'cluster_uuid': esxi.configManager.vsanSystem.config.clusterInfo.uuid,
+                'nodes': {
+                    'uuid': esxi.configManager.vsanSystem.config.clusterInfo.nodeUuid,
+                    'disk_groups': self._get_vsan_disk_configs(esxi=esxi)
+                }
             })
         return vsan_cluster_configs
 

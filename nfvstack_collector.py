@@ -75,39 +75,21 @@ def get_vcenter_configs(config):
         logger.info('')
 
     logger.info('\n>>> Host configurations')
-    cluster_configs = vapi.get_cluster_configs()
-    for cluster in cluster_configs:
-        logger.info('Cluster: {}'.format(cluster['name']))
-        for host_config in cluster['hosts']:
+    managed_hosts_configs = vapi.get_cluster_configs()
+    for managed_hosts in managed_hosts_configs:
+        logger.info('Cluster: {}'.format(managed_hosts['name']))
+        for host_config in managed_hosts['hosts']:
             logger.info(json.dumps(host_config, indent=2))
             logger.info('')
         logger.info('')
 
-    logger.info('\n>>> vSAN Cluster configuration')
-    print(esxis)
-    cluster_list = vc.get_cluster_list()
-    esxi_configs = []
-    hostlist = vc.get_host_list(cluster=esxi)
-    vsan_cluster_configs = vapi.get_vsan_cluster_configs(
-        esxi_hosts=hostlist
-    )
-    print(vsan_cluster_configs)
-    sys.exit(1)
-
-    # for vsan_host in esxis:
-    #     logger.info('>>>>>> {}'.format(vsan_host.name))
-    #     logger.info('Cluster UUID: {}'.format(vsan_host.configManager.vsanSystem.config.clusterInfo.uuid))
-    #     logger.info('Node UUID: {}'.format(vsan_host.configManager.vsanSystem.config.clusterInfo.nodeUuid))
-    #     disk_config = vsan_host.config.vsanHostConfig.storageInfo.diskMapping
-    #     logger.info('Disk Group: {}'.format(disk_config[0].ssd.vsanDiskInfo.vsanUuid))
-    #     for disk in disk_config:
-    #         logger.info('Disk Claimed: ')
-    #         logger.info('> Flash')
-    #         logger.info('  {}'.format(disk.ssd.displayName))
-    #         logger.info('> HDD')
-    #         for non_ssd in disk.nonSsd:
-    #             logger.info('  {}'.format(non_ssd.displayName))
-    #     logger.info('')
+    logger.info('\n>>> vSAN configurations')
+    for managed_hosts in managed_hosts_configs:
+        logger.info('Cluster: {}'.format(managed_hosts['name']))
+        for vsan_config in managed_hosts['vsan']:
+            logger.info(json.dumps(vsan_config, indent=2))
+            logger.info('')
+        logger.info('')
 
     logger.info('\n>>> vDS configuration')
     vds_configs = vapi.get_vds_configs()
@@ -116,8 +98,17 @@ def get_vcenter_configs(config):
             logger.info('{0}: \t{1}'.format(k, v))
         logger.info('')
 
-    # TODO: Return JSON value with parsed
-    return None
+    config_dump = {
+        'product': 'vsphere',
+        'versions': version_configs,
+        'vcsa': appliance_configs,
+        'vcha': vcha_configs,
+        'datacenters': datacenter_configs,
+        'cluster_configs': cluster_configs,
+        'esxi': managed_hosts_configs,
+        'vDS': vds_configs
+    }
+    return config_dump
 
 
 def get_nsxt_configs(config):
@@ -458,12 +449,17 @@ if __name__ == "__main__":
     logger.info('>>> Start collecting configurations, this might take some time ...')
     logger.info('')
     logger.info('--------------------------------------------------------------------')
-    logger.info('### M-Plane vCenter Server ')
-    vcenter_configs = get_vcenter_configs(config=configs.get('management'))
+    mplane_vsphere_config_dump = export_config_to_file(
+        dump_data=get_vcenter_configs(config=configs.get('management')),
+        timestamp=TIMESTAMP
+    )
+    logger.info('\n--- M-Plane vSphere config exported : {}'.format(mplane_vsphere_config_dump))
     logger.info('')
-    logger.info('### C-Plane vCenter Server ')
-    vcenter_configs = get_vcenter_configs(config=configs.get('c_plane'))
-    logger.info('')
+    # cplane_vsphere_config_dump = export_config_to_file(
+    #     dump_data=get_vcenter_configs(config=configs.get('c_plane')),
+    #     timestamp=TIMESTAMP
+    # )
+    # logger.info('\n--- C-Plane vSphere config exported : {}'.format(cplane_vsphere_config_dump))
     logger.info('--------------------------------------------------------------------')
     nsx_config_dump = export_config_to_file(
         dump_data=get_nsxt_configs(config=configs.get('c_plane')),
