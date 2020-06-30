@@ -153,18 +153,6 @@ class VApi():
         cluster_view.Destroy()
         return clusterlist
 
-    def get_cluster_configs(self):
-        cluster_configs = []
-        cluster_view = self._get_cluster_objects()
-        for cluster in cluster_view:
-            cluster_configs.append({
-                'name': cluster.name,
-                'hosts': self._get_esxi_configs(esxis=cluster.host),
-                'vsan': self._get_vsan_cluster_configs(esxis=cluster.host)
-            })
-        return cluster_configs
-
-    ## class methods for vSAN
     def _get_vsan_disk_configs(self, esxi):
         disk_map = esxi.config.vsanHostConfig.storageInfo.diskMapping
         vsan_cluster_disk_configs = {
@@ -191,7 +179,17 @@ class VApi():
             })
         return vsan_cluster_configs
 
-    ## class methods for vDS configurations
+    def get_cluster_configs(self):
+        cluster_configs = []
+        cluster_view = self._get_cluster_objects()
+        for cluster in cluster_view:
+            cluster_configs.append({
+                'name': cluster.name,
+                'hosts': self._get_esxi_configs(esxis=cluster.host),
+                'vsan': self._get_vsan_cluster_configs(esxis=cluster.host)
+            })
+        return cluster_configs
+
     def _get_dvs_objects(self):
         ret = self._establish_session()
         dvs_view = ret.viewManager.CreateContainerView(

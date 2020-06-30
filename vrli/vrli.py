@@ -1,5 +1,4 @@
 import json
-import os
 import logging
 logger = logging.getLogger(__name__)
 
@@ -30,14 +29,12 @@ class VRli():
             'password': self.password,
             'provider': self.provider
         }
-        # POST to fetch token
         token = self.post(
             urlsuffix='/api/v1/sessions',
             headers=self.headers,
             reqbody=json.dumps(body)
         )
         logger.debug(token)
-        # Update headers
         self.headers['Authorization'] = 'Bearer {}'.format(
             token.get('sessionId')
         )

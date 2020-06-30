@@ -9,9 +9,6 @@ import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 urllib3.disable_warnings(InsecureRequestWarning)
 
-from pyVim.connect import SmartConnect, Disconnect
-from pyVmomi import vim
-
 
 class VCenter():
     def __init__(self, ipaddress, username, password):
@@ -26,14 +23,12 @@ class VCenter():
         self.set_token()
 
     def set_token(self):
-        # POST to fetch token
         token = self.post(
             urlsuffix='/rest/com/vmware/cis/session',
             headers=self.headers,
             reqbody=''
         )
         logger.debug(token)
-        # Update headers
         self.headers['vmware-api-session-id'] = token.get('value')
 
     def get(self, urlsuffix):
