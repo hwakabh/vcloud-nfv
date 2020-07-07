@@ -20,12 +20,12 @@ def read_config_from_file(conf_file_path):
     return yaml.safe_load(data)
 
 
-def export_config_to_file(dump_data, timestamp):
-    EXPORT_PATH = './{}_nfvconfig'.format(timestamp)
+def export_config_to_file(dump_data, prefix):
+    EXPORT_PATH = './{}_nfvconfig'.format(prefix)
     if not os.path.exists(EXPORT_PATH):
         os.mkdir(EXPORT_PATH)
     target_product = dump_data['product']
-    dump_file_name = '{0}/{1}_{2}_config.json'.format(EXPORT_PATH, timestamp, target_product)
+    dump_file_name = '{0}/{1}_{2}_config.json'.format(EXPORT_PATH, prefix, target_product)
     with open(dump_file_name, 'w') as f:
         json.dump(dump_data, f, indent=3)
     return dump_file_name
@@ -414,13 +414,13 @@ def get_vrops_configs(config):
 
 if __name__ == "__main__":
 
-    TIMESTAMP = datetime.now().strftime('%Y%m%d_%H%M%S')
+    PREFIX = datetime.now().strftime('%Y%m%d_%H%M%S')
 
     # Log file validations
     LOG_DIR = './logs'
     if not os.path.exists(LOG_DIR):
         os.mkdir(LOG_DIR)
-    LOG_FILENAME = '{}_nfvstack_collector.log'.format(TIMESTAMP)
+    LOG_FILENAME = '{}_nfvstack_collector.log'.format(PREFIX)
     LOG_FILE_PATH = os.path.join(LOG_DIR, LOG_FILENAME)
 
     # Basic log handler
@@ -451,47 +451,47 @@ if __name__ == "__main__":
     logger.info('--------------------------------------------------------------------')
     mplane_vsphere_config_dump = export_config_to_file(
         dump_data=get_vcenter_configs(config=configs.get('management')),
-        timestamp=TIMESTAMP
+        prefix=PREFIX
     )
     logger.info('\n--- M-Plane vSphere config exported : {}'.format(mplane_vsphere_config_dump))
     logger.info('')
     # cplane_vsphere_config_dump = export_config_to_file(
     #     dump_data=get_vcenter_configs(config=configs.get('c_plane')),
-    #     timestamp=TIMESTAMP
+    #     prefix=PREFIX
     # )
     # logger.info('\n--- C-Plane vSphere config exported : {}'.format(cplane_vsphere_config_dump))
     logger.info('--------------------------------------------------------------------')
     nsx_config_dump = export_config_to_file(
         dump_data=get_nsxt_configs(config=configs.get('c_plane')),
-        timestamp=TIMESTAMP
+        prefix=PREFIX
     )
     logger.info('\n--- C-Plane NSX-T config exported : {}'.format(nsx_config_dump))
     logger.info('--------------------------------------------------------------------')
     vio_config_dump = export_config_to_file(
         dump_data=get_vio_configs(config=configs.get('c_plane')),
-        timestamp=TIMESTAMP
+        prefix=PREFIX
     )
     logger.info('\n--- C-Plane VIO config exported : {}'.format(vio_config_dump))
     logger.info('--------------------------------------------------------------------')
     vrops_config_dump = export_config_to_file(
         dump_data=get_vrops_configs(config=configs.get('c_plane')),
-        timestamp=TIMESTAMP
+        prefix=PREFIX
     )
     logger.info('\n--- C-Plane vROps config exported : {}'.format(vrops_config_dump))
     logger.info('--------------------------------------------------------------------')
     vrli_config_dump = export_config_to_file(
         dump_data=get_vrli_configs(config=configs.get('c_plane')),
-        timestamp=TIMESTAMP
+        prefix=PREFIX
     )
     logger.info('\n--- C-Plane vRLI config exported : {}'.format(vrli_config_dump))
     logger.info('--------------------------------------------------------------------')
     vrni_config_dump = export_config_to_file(
         dump_data=get_vrni_configs(config=configs.get('c_plane')),
-        timestamp=TIMESTAMP
+        prefix=PREFIX
     )
     logger.info('\n--- C-Plane vRNI config exported : {}'.format(vrni_config_dump))
     logger.info('--------------------------------------------------------------------')
     logger.info('>>> All configuration dumped !!')
-    logger.info('Dumped configuration files : [ ./{}_nfvconfig/*_config.json ]'.format(TIMESTAMP))
+    logger.info('Dumped configuration files : [ ./{}_nfvconfig/*_config.json ]'.format(PREFIX))
 
     sys.exit(0)
