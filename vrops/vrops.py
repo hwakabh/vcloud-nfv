@@ -1,9 +1,8 @@
-import requests
 import json
-
 import logging
 logger = logging.getLogger(__name__)
 
+import requests
 import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 urllib3.disable_warnings(InsecureRequestWarning)
@@ -27,14 +26,12 @@ class VROps():
             'username': self.username,
             'password': self.password,
         }
-        # POST to fetch token
         token = self.post(
             urlsuffix='/suite-api/api/auth/token/acquire',
             headers=self.headers,
             reqbody=json.dumps(body)
         )
         logger.debug(token)
-        # Update headers
         self.headers['Authorization'] = 'vRealizeOpsToken {}'.format(
             token.get('token')
         )

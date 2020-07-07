@@ -3,11 +3,6 @@ import atexit
 import logging
 logger = logging.getLogger(__name__)
 
-import requests
-import urllib3
-from urllib3.exceptions import InsecureRequestWarning
-urllib3.disable_warnings(InsecureRequestWarning)
-
 from pyVim.connect import SmartConnect, Disconnect
 from pyVmomi import vim
 
@@ -31,7 +26,6 @@ class VApi():
         atexit.register(Disconnect, vc_session)
         return vc_session.content
 
-    # host general
     def _get_host_system_version(self, host):
         versions = host.summary.config.product
         return {
@@ -53,36 +47,46 @@ class VApi():
 
     def _get_host_ssh_status(self, host):
         services = host.configManager.serviceSystem
-        ssh_service = [s for s in services.serviceInfo.service if s.key == 'TSM-SSH'][0].running
-        return 'Running' if ssh_service == True else 'Error'
+        ssh_service = [
+            service
+            for service in services.serviceInfo.service
+            if service.key == 'TSM-SSH'
+        ]
+        return 'Running' if ssh_service[0].running == True else 'Error'
 
-    # host networks
     def _get_host_pnics(self, host):
         host_pnics = []
         for pnic in host.config.network.pnic:
-            pnic_info = dict()
-            pnic_info.update(
-                {'device': pnic.device, 'driver': pnic.driver, 'mac': pnic.mac})
+            pnic_info = {}
+            pnic_info.update({
+                'device': pnic.device,
+                'driver': pnic.driver,
+                'mac': pnic.mac
+            })
             host_pnics.append(pnic_info)
         return host_pnics
 
     def _get_host_vnics(self, host):
         host_vnics = []
         for vnic in host.config.network.vnic:
-            vnic_info = dict()
-            vnic_info.update(
-                {'device': vnic.device, 'portgroup': vnic.portgroup,
-                'dhcp': vnic.spec.ip.dhcp, 'ipAddress': vnic.spec.ip.ipAddress,
+            vnic_info = {}
+            vnic_info.update({
+                'device': vnic.device,
+                'portgroup': vnic.portgroup,
+                'dhcp': vnic.spec.ip.dhcp,
+                'ipAddress': vnic.spec.ip.ipAddress,
                 'subnetMask': vnic.spec.ip.subnetMask,
                 'defautlGateway': vnic.spec.ipRouteSpec.ipRouteConfig.defaultGateway,
-                'mac': vnic.spec.mac, 'mtu': vnic.spec.mtu})
+                'mac': vnic.spec.mac,
+                'mtu': vnic.spec.mtu
+            })
             host_vnics.append(vnic_info)
         return host_vnics
 
     def _get_host_vswitches(self, host):
         host_vswitches = []
         for vswitch in host.config.network.vswitch:
-            vswitch_info = dict()
+            vswitch_info = {}
             vswitch_pnics = []
             vswitch_portgroups = []
             for pnic in vswitch.pnic:
@@ -91,21 +95,28 @@ class VApi():
             for pg in vswitch.portgroup:
                 pg = pg.replace('key-vim.host.PortGroup-', '')
                 vswitch_portgroups.append(pg)
-            vswitch_info.update({'name': vswitch.name, 'pnics': vswitch_pnics, 'portgroups': vswitch_portgroups, 'mtu': vswitch.mtu})
+            vswitch_info.update({
+                'name': vswitch.name,
+                'pnics': vswitch_pnics,
+                'portgroups': vswitch_portgroups,
+                'mtu': vswitch.mtu
+            })
             host_vswitches.append(vswitch_info)
         return host_vswitches
 
     def _get_host_portgroups(self, host):
         host_portgroups = []
         for portgroup in host.config.network.portgroup:
-            portgroup_info = dict()
-            portgroup_info.update(
-                {'name': portgroup.spec.name, 'vlanId': portgroup.spec.vlanId,
+            portgroup_info = {}
+            portgroup_info.update({
+                'name': portgroup.spec.name,
+                'vlanId': portgroup.spec.vlanId,
                 'vswitchName': portgroup.spec.vswitchName,
                 'nicTeamingPolicy': portgroup.spec.policy.nicTeaming.policy,
                 'allowPromiscuous': portgroup.spec.policy.security.allowPromiscuous,
                 'macChanges': portgroup.spec.policy.security.macChanges,
-                'forgedTransmits': portgroup.spec.policy.security.forgedTransmits})
+                'forgedTransmits': portgroup.spec.policy.security.forgedTransmits
+            })
             host_portgroups.append(portgroup_info)
         return host_portgroups
 
@@ -142,18 +153,6 @@ class VApi():
         cluster_view.Destroy()
         return clusterlist
 
-    def get_cluster_configs(self):
-        cluster_configs = []
-        cluster_view = self._get_cluster_objects()
-        for cluster in cluster_view:
-            cluster_configs.append({
-                'name': cluster.name,
-                'hosts': self._get_esxi_configs(esxis=cluster.host),
-                'vsan': self._get_vsan_cluster_configs(esxis=cluster.host)
-            })
-        return cluster_configs
-
-    ## class methods for vSAN
     def _get_vsan_disk_configs(self, esxi):
         disk_map = esxi.config.vsanHostConfig.storageInfo.diskMapping
         vsan_cluster_disk_configs = {
@@ -180,7 +179,17 @@ class VApi():
             })
         return vsan_cluster_configs
 
-    ## class methods for vDS configurations
+    def get_cluster_configs(self):
+        cluster_configs = []
+        cluster_view = self._get_cluster_objects()
+        for cluster in cluster_view:
+            cluster_configs.append({
+                'name': cluster.name,
+                'hosts': self._get_esxi_configs(esxis=cluster.host),
+                'vsan': self._get_vsan_cluster_configs(esxis=cluster.host)
+            })
+        return cluster_configs
+
     def _get_dvs_objects(self):
         ret = self._establish_session()
         dvs_view = ret.viewManager.CreateContainerView(

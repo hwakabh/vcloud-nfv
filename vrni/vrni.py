@@ -31,14 +31,12 @@ class VRni():
                 'domain_type': self.domain
             }
         }
-        # POST to fetch token
         token = self.post(
             urlsuffix='/api/ni/auth/token',
             headers=self.headers,
             reqbody=json.dumps(body)
         )
         logger.debug(token)
-        # Update headers
         self.headers['Authorization'] = 'NetworkInsight {}'.format(
             token.get('token')
         )
