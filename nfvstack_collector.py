@@ -437,13 +437,13 @@ if __name__ == "__main__":
     logger.info('>>> Logfile : [ {} ]'.format(LOG_FILE_PATH))
 
     # Input file validations
-    CONFIG_FILE_PATH = './InputFile-NFVStack.yaml'
-    if os.path.exists(CONFIG_FILE_PATH):
-        logger.info('>>> Loading input parameter file : [ {} ]'.format(CONFIG_FILE_PATH))
-        configs = read_config_from_file(conf_file_path=CONFIG_FILE_PATH)
+    NFV_STACK_YAML = './InputFile-NFVStack.yaml'
+    if os.path.exists(NFV_STACK_YAML):
+        logger.info('>>> Loading input parameter file : [ {} ]'.format(NFV_STACK_YAML))
+        configs = read_config_from_file(conf_file_path=NFV_STACK_YAML)
     else:
         logger.error('Provided configuration file path is wrong.')
-        logger.error('Configuration file is expected to be allocated on: {} '.format(CONFIG_FILE_PATH))
+        logger.error('Configuration file is expected to be allocated on: {} '.format(NFV_STACK_YAML))
         sys.exit(1)
 
     logger.info('>>> Start collecting configurations, this might take some time ...')
