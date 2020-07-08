@@ -216,7 +216,7 @@ def get_vio_configs(config):
     viomgr = Vio(
         ipaddress=cfg['management_ip'],
         username=cfg['user_name'],
-        password=cfg['vio_admin_password']
+        password=cfg['user_password']
     )
 
     logger.info('\n>>> Cluster network configurations')
@@ -267,7 +267,7 @@ def get_vrni_configs(config):
     vrni = VRni(
         ipaddress=cfg['hostname'],
         username=cfg['user_name'],
-        password=cfg['password'],
+        password=cfg['user_password'],
         domain=cfg['domain']
     )
 
@@ -323,7 +323,7 @@ def get_vrli_configs(config):
     vrli = VRli(
         ipaddress=cfg['vip_address'],
         username=cfg['user_name'],
-        password=cfg['password'],
+        password=cfg['user_password'],
         provider='Local'
     )
 
@@ -449,23 +449,23 @@ if __name__ == "__main__":
     logger.info('>>> Start collecting configurations, this might take some time ...')
     logger.info('')
     logger.info('--------------------------------------------------------------------')
-    mplane_vsphere_config_dump = export_config_to_file(
-        dump_data=get_vcenter_configs(config=configs.get('management')),
-        prefix=PREFIX
-    )
-    logger.info('\n--- M-Plane vSphere config exported : {}'.format(mplane_vsphere_config_dump))
-    logger.info('')
-    # cplane_vsphere_config_dump = export_config_to_file(
-    #     dump_data=get_vcenter_configs(config=configs.get('c_plane')),
+    # mplane_vsphere_config_dump = export_config_to_file(
+    #     dump_data=get_vcenter_configs(config=configs.get('management')),
     #     prefix=PREFIX
     # )
-    # logger.info('\n--- C-Plane vSphere config exported : {}'.format(cplane_vsphere_config_dump))
-    logger.info('--------------------------------------------------------------------')
-    nsx_config_dump = export_config_to_file(
-        dump_data=get_nsxt_configs(config=configs.get('c_plane')),
-        prefix=PREFIX
-    )
-    logger.info('\n--- C-Plane NSX-T config exported : {}'.format(nsx_config_dump))
+    # logger.info('\n--- M-Plane vSphere config exported : {}'.format(mplane_vsphere_config_dump))
+    # logger.info('')
+    # # cplane_vsphere_config_dump = export_config_to_file(
+    # #     dump_data=get_vcenter_configs(config=configs.get('c_plane')),
+    # #     prefix=PREFIX
+    # # )
+    # # logger.info('\n--- C-Plane vSphere config exported : {}'.format(cplane_vsphere_config_dump))
+    # logger.info('--------------------------------------------------------------------')
+    # nsx_config_dump = export_config_to_file(
+    #     dump_data=get_nsxt_configs(config=configs.get('c_plane')),
+    #     prefix=PREFIX
+    # )
+    # logger.info('\n--- C-Plane NSX-T config exported : {}'.format(nsx_config_dump))
     logger.info('--------------------------------------------------------------------')
     vio_config_dump = export_config_to_file(
         dump_data=get_vio_configs(config=configs.get('c_plane')),

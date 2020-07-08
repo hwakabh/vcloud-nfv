@@ -1,44 +1,51 @@
-## Infrastructure-wide configurations
 product0: Infra
 infra_ntp_server: 192.168.100.2
 infra_dns_server: 192.168.100.2
 infra_domain: psolab.local
 esxi_mgmt_network_managed_by_vss: N
 viodeployment: Y
-nfvstack: 3.3
+nfvstack: 3.5
 all_flash_vsan: y
 pod_design: 3POD
-
-## Configurations for M-Plane POD
+esxi_vmkernel_mtu: 1500
+ens_vib_location: E:\\ixgben-ens-1.1.3-1OEM.670.0.0.8169922.x86_64.vib
+resource_transport_node_type: ENS
 management:
   datastore_type: vSAN
+  vsan_datastore_name: vsanDatastore-Mgmt
   host:
     hosts:
-      - ip: mgmthost1.psolab.local
-        tenant_nic: vmnic2
-        infra_nic: vmnic3
-        vmotion_ip: 192.168.101.211
-        vsan_ip: 192.168.102.211
-      - ip: mgmthost2.psolab.local
-        tenant_nic: vmnic2
-        infra_nic: vmnic3
-        vmotion_ip: 192.168.101.212
-        vsan_ip: 192.168.102.212
-      - ip: mgmthost3.psolab.local
-        tenant_nic: vmnic2
-        infra_nic: vmnic3
-        vmotion_ip: 192.168.101.213
-        vsan_ip: 192.168.102.213
+      - ip: esxi04.nfvlab.local
+        tenant_nic: 
+        infra_nic: 
+        vmotion_ip: 172.16.130.104
+        vsan_ip: 192.168.120.104
+        std_overlay_nic: vmnic4
+        std_vlan_nic: vmnic5
+      - ip: esxi08.nfvlab.local
+        tenant_nic: 
+        infra_nic: 
+        vmotion_ip: 172.16.130.108
+        vsan_ip: 172.16.120.108
+        std_overlay_nic: vmnic4
+        std_vlan_nic: vmnic5
+      - ip: esxi09.nfvlab.local
+        tenant_nic: 
+        infra_nic: 
+        vmotion_ip: 172.16.130.109
+        vsan_ip: 172.16.120.109
+        std_overlay_nic: vmnic4
+        std_vlan_nic: vmnic5
     user: root
-    password: VMware1!
+    password: Vmware1!
     vmotion_mask: 255.255.255.0
     vsan_mask: 255.255.255.0
   vcenter:
     binary_path: C:\\VMware-VCSA-all-6.7.0-15132721.iso
     deployment_option: small
-    appliance_name: vcsa02
-    hostname: vcsa02.nfvlab.local
-    name: vcsa02
+    appliance_name: mgmtvc.psolab.local
+    hostname: mgmtvc.psolab.local
+    name: mgmtvc
     gateway: 172.16.111.254
     subnet_mask: 255.255.255.0
     ip_address: 172.16.111.51
@@ -53,7 +60,7 @@ management:
     subnet: 172.16.111.0
     dc_name: Datacenter
     cluster_name: ManagementCluster
-    infra_dv_switch: vDS
+    infra_dv_switch: vDS02
     tenant_dv_switch: MgmtTenant
     infra_num_uplink_ports: 1
     tenant_num_uplink_ports: 1
@@ -62,7 +69,7 @@ management:
       name: vMotion
       vlan_id: 0
     esxi:
-      name: ESXi
+      name: Management
       vlan_id: 0
     infra_backup:
       name: Backup
@@ -74,13 +81,13 @@ management:
       name: vSAN
       vlan_id: 0
     vm_mgmt:
-      name: VMManagement
+      name: VM-Management
       vlan_id: 0
     vcha:
       name: VCHA
       vlan_id: 0
     vio_api:
-      name: VIOAPI
+      name: VIO-API
       vlan_id: 0
     tenant_backup:
       name: TenantBackup
@@ -97,49 +104,60 @@ management:
     witness_vm_name: mgmtvc-Witness
     subnet_mask: 255.255.255.0
     gateway: 192.168.103.1
-
-## Configurations for C-Plane POD
 c_plane:
   datastore_type: vSAN
+  vsan_datastore_name: vsanDatastore-Compute
   host:
     hosts:
-      - ip: reshost1.psolab.local
-        tenant_nic: vmnic2
+      - ip: esxi05.nfvlab.local
+        tenant_nic: vmnic3
         infra_nic: vmnic3
-        vmotion_ip: 192.168.101.215
-        vsan_ip: 192.168.102.215
-      - ip: reshost2.psolab.local
-        tenant_nic: vmnic2
+        vmotion_ip: 172.16.120.105
+        vsan_ip: 172.16.130.105
+        ens_overlay_nic: vmnic4
+        ens_vlan_nic: vmnic5
+        std_overlay_nic: vmnic4
+        std_vlan_nic: vmnic5
+      - ip: esxi06.nfvlab.local
+        tenant_nic: vmnic3
         infra_nic: vmnic3
-        vmotion_ip: 192.168.101.216
-        vsan_ip: 192.168.102.216
-      - ip: reshost3.psolab.local
-        tenant_nic: vmnic2
+        vmotion_ip: 172.16.120.106
+        vsan_ip: 172.16.130.106
+        ens_overlay_nic: vmnic4
+        ens_vlan_nic: vmnic5
+        std_overlay_nic: vmnic4
+        std_vlan_nic: vmnic5
+      - ip: esxi07.nfvlab.local
+        tenant_nic: vmnic3
         infra_nic: vmnic3
-        vmotion_ip: 192.168.101.217
-        vsan_ip: 192.168.102.217
+        vmotion_ip: 172.16.120.107
+        vsan_ip: 172.16.130.107
+        ens_overlay_nic: vmnic4
+        ens_vlan_nic: vmnic5
+        std_overlay_nic: vmnic4
+        std_vlan_nic: vmnic5
     user: root
     password: VMware1!
     vmotion_mask: 255.255.255.0
     vsan_mask: 255.255.255.0
   vcenter:
     deployment_option: small
-    appliance_name: vcsa01
-    hostname: vcsa01.nfvlab.local
-    name:
-    gateway: 172.16.110.51
-    ip_address: 172.16.110.11
+    appliance_name: resvc.psolab.local
+    hostname: resvc.psolab.local
+    name: resvc
+    gateway: 192.168.100.1
+    ip_address: 192.168.100.218
     ip_family: IPv4
     network_mode: static
     network_prefix: 24
-    root_password: VMware1!
-    sso_password: VMware1!
+    root_password: Vmware1!
+    sso_password: Vmware1!
     sso_domain: vsphere.local
-    user_name: administrator@vsphere.local
-    dc_name: Datacenter
-    cluster_name: ManagementCluster
-    infra_dv_switch: VDS-01
-    tenant_dv_switch: VDS-01
+    user_name: Administrator@vsphere.local
+    dc_name: ResourceDC
+    cluster_name: ResourceCluster
+    infra_dv_switch: ResourceInfra
+    tenant_dv_switch: ResourceTenant
     infra_num_uplink_ports: 1
     tenant_num_uplink_ports: 1
   portgroup:
@@ -156,7 +174,8 @@ c_plane:
       name: VMManagement
       vlan_id: 0
     overlay: Overlay
-    external: External
+    external1: External
+    external2: Externa2
   vcha:
     ip: 192.168.104.2
     prefix: 24
@@ -171,46 +190,74 @@ c_plane:
       - ip: edgehost1.psolab.local
         tenant_nic: vmnic0
         infra_nic: vmnic2
-        vmotion_ip: x.x.x.x
-        vsan_ip: x.x.x.x
-      - ip: edgehost2.psolab.local
-        tenant_nic: vmnic0
-        infra_nic: vmnic2
-        vmotion_ip: x.x.x.x
-        vsan_ip: x.x.x.x
+        vmotion_ip: 192.168.101.219
+        vsan_ip: 192.168.102.219
     user: root
-    password: VMware1!VMware1!
+    password: Vmware1!
     vmotion_mask: 255.255.255.0
     vsan_mask: 255.255.255.0
-    nic:
+    portgroup:
       vmotion:
         name: lax01e01vds01-vmotion
-        vlan_id: 3100
+        vlan_id: 0
       esxi:
         name: lax01e01vds01-mgmt
-        vlan_id: 3021
+        vlan_id: 0
       vsan:
         name: lax01e01vds01-vsan
-        vlan_id: 3022
+        vlan_id: 0
       vm_mgmt:
         name: lax01e01vds01-mgmtvm
-        vlan_id: 3021
+        vlan_id: 0
+      overlay: Overlay
+      external1: External
+      external2: Externa2
     cluster_name: EdgeCluster
     infra_dv_switch: lax01e01vds01-infra
     tenant_dv_switch: lax01e01vds01-tenant
     infra_num_uplink_ports: 1
     tenant_num_uplink_ports: 1
   nsxt:
-    edge_node_ip:
-        - nsxedge01.nfvlab.local
-        - nsxedge02.nfvlab.local
+    edge_node:
+      edge_cluster_transport_node_type: MStd,MStdUplink1,MStdUplink2
+      edge_cluster_name: nsxt_edge_cluster_name
+      edge_cluster_name_for_vio: vio-edge-cluster
+      deployment_size: SMALL
+      cli_password: VMware1!VMware1!
+      root_password: VMware1!VMware1!
+      prefix: 24
+      nodes:
+        - ip: 172.16.111.54
+          vm_name: nsxmgr02-edge-0
+          transport_node_name: nsxmgr02-edge-0
+          hostname: nsxedge01.nfvlab.local
+        - ip: 172.16.111.55
+          vm_name: nsxmgr02-edge-1
+          transport_node_name: nsxmgr02-edge-1
+          hostname: nsxedge02.nfvlab.local
     bare_metal_edges:
       ip: 
         - nsxtedge1.psolab.local
         - nsxtedge2.psolab.local
       admin_user_name: admin
-      admin_password: VMware1!VMware1!
-    thumbprint: 
+      admin_password: Vmware12345!
+    ip_pool:
+      nsxt:
+        start_addres: 192.168.20.20
+        end_address: 192.168.20.29
+        cidr: 192.168.20.0/24
+        name: ippool_nsxt
+      edge:
+        start_addres: 192.168.30.30
+        end_address: 192.168.30.39
+        cidr: 192.168.30.0/24
+        name: ippool_edge
+      edge_ens:
+        start_addres: 192.168.40.40
+        end_address: 192.168.40.49
+        cidr: 192.168.40.0/24
+        name: ippool_ens
+    uplink_profile_mtu: 1600
     ova_path: E:\\nsx-unified-appliance-3.0.0.0.0.15946739.ova
     vm_name: nsxmgr02
     root_password: VMware1!VMware1!
@@ -220,62 +267,102 @@ c_plane:
     admin_user_name: admin
     audit_user_name: audit
     host_name: nsxmgr02.nfvlab.local
-    ip_address: 172.16.111.61
+    ip_address: 172.16.111.52
+    v_ip: 172.16.111.61
     net_mask: 255.255.255.0
-    gate_way: 172.16.111.254
+    gate_way: 172.16.111.61
     prefix: 24
     dep_size: small
     ip_type: IPv4
-    license:
+    license: 
     role: NSX Manager
-    node01_ip_address: 172.16.111.52
-    node02_ip_address: 172.16.111.62
-    node03_ip_address: 172.16.111.72
+    node01_ip_address: 172.16.111.62
+    node02_ip_address: 172.16.111.72
     form_factor: SMALL
     load_balancer_size: SMALL
-    ip_pool:
-      start_address: 172.16.140.105
-      end_address: 172.16.140.120
-      cidr: 172.16.140.0/24
-    overlay_transport_zone:
-      display_name: lax01-r-std-overlay
-      host_switch_name: lax01-r-overlay-hostswitch
-      description: lax01-r-overlay-hostswitch
-      type: OVERLAY
-    vlan_transport_zone:
-      display_name: lax01-r-std-vlan
-      host_switch_name: lax01-r-vlan-hostswitch
-      description: lax01-r-vlan-hostswitch
-      type: VLAN
+    transport_zone:
+      management: 
+        standard:
+          host_switch_profile: lax01m01-esx-mgmt-vlan
+          edge_switch_profile: lax01m01-edge-mgmt-vlan
+          transport_zone_host_switch_name: lax01m01-nvds01-std
+          uplink_1_transport_zone:
+            display_name: lax01m01-std-uplink01
+            host_switch_name: lax01m01-nvds01-uplink01
+            description: lax01m01-nvds01-uplink01
+            type: VLAN
+            host_switch_profile: lax01m01-uplink01
+            vlan: 3136
+          uplink_2_transport_zone:
+            display_name: lax01m01-std-uplink02
+            host_switch_name: lax01m01-nvds01-uplink02
+            description: lax01m01-nvds01-uplink02
+            type: VLAN
+            host_switch_profile: lax01m01-uplink02
+            vlan: 3137
+        overlay_transport_zone:
+          display_name: lax01m01-std-overlay
+          description: lax01m01-overlay-tz
+          type: OVERLAY
+          vlan: 3136
+        vlan_transport_zone:
+          display_name: lax01m01-std-vlan
+          description: lax01-m-vlan-tz
+          type: VLAN
+      resource:
+        host_switch_profile: lax01-esx-std-profile
+        edge_switch_profile: lax01-edge-std-profile
+        transport_zone_host_switch_name: lax01-r-nvds01-std
+        overlay_transport_zone:
+          display_name: lax01-r-std-overlay
+          description: lax01-r-std-overlay-tz
+          type: OVERLAY
+          vlan: 3145
+        vlan_transport_zone:
+          display_name: lax01-r-std-vlan
+          description: lax01-r-std-vlan-tz
+          type: VLAN
+      ens:
+        host_switch_profile: lax01-esx-ens-profile
+        transport_zone_host_switch_name: lax01-r-nvds01-ens
+        overlay_transport_zone:
+          display_name: lax01-r-ens-overlay
+          description: lax01-r-ens-overlay-tz
+          type: OVERLAY
+          vlan: 3147
+        vlan_transport_zone:
+          display_name: lax01-r-ens-vlan
+          description: lax01-r-ens-vlan-tz
+          type: VLAN
   vrli:
     node_ova_path: E:\\VMware-vRealize-Log-Insight-8.1.1.0-16281169_OVF10.ova
     node_ip_address: 172.16.111.20
-    node_vm_name: vrli02.nfvlab.local
-    node_domain_name: vrli02.nfvlab.local
+    node_vm_name: vrli02
+    node_domain_name: nfvlab.local
     node_net_mask: 255.255.255.0
     node_gate_way: 172.16.111.254
     node_deployment_option: xsmall
     node_ip_type: IPv4
     node_root_password: VMware1!
-    license:
+    license: 
     user_name: admin
-    password: VMware1!    ## Seem to be required to password for login vIP
+    user_password: VMware1!
     emailid: admin@nfvra.com
     vip_address: 172.16.111.19
     vip_fqdn: vrli.nfvlab.local
     content_pack_location: E:\\builds\\3.1OSE\\ContentPack
     worker_node:
-      - ip_address: 172.16.111.20
-        vm_name: vrli02
-        domain_name: vrli02.nfvlab.local
-      # - ip_address: 192.168.100.233
-      #   vm_name: vrli3.psolab.local
-      #   domain_name: vrli3.psolab.local
+      - ip_address: 192.168.100.232
+        vm_name: vrli2.psolab.local
+        domain_name: vrli2.psolab.local
+      - ip_address: 192.168.100.233
+        vm_name: vrli3.psolab.local
+        domain_name: vrli3.psolab.local
   vrops:
     ova_path: E:\\vRealize-Operations-Manager-Appliance-8.1.0.15972145_OVF10.ova
     master_node_vm_name: vrops02-a
     replica_node_vm_name: vrops02-b
-    data_node_vm_name: vropsdata
+    data_node_vm_name: vrops02-data
     master_deployment_size: xsmall
     master_node_ip: 172.16.111.30
     replica_node_ip: 172.16.111.31
@@ -287,7 +374,7 @@ c_plane:
     node_time: Etc/UTC
     node_admin_password: VMware1!
     node_user_name: admin
-    license_key:
+    license_key: 
   vio:
     ova_path: E:\\VIO-Appliance-7.0.0.0-16227912_OVF10.ova
     domain_name: nfvlab.local
@@ -295,49 +382,311 @@ c_plane:
     net_mask: 255.255.255.0
     gateway: 172.16.111.254
     ip_allocation_policy: fixedPolicy
+    user_name: admin
     user_password: VMware1!
     ovf_tool_path: C:\\Program Files\\VMware\\VMware OVF Tool\\ovftool.exe
     vm_name: viomgr02
-    user_name: admin
     root_password: VMware1!
-    service_cidr: 10.10.0.0/16
-    pod_cidr: 10.20.0.0/16
+    service_cidr: 10.10.0.0/24
+    pod_cidr: 10.20.0.0/24
     service_domain: cluster.local
-    chrome_driver_path: F:\\nfv3.2build\\powercliuiautomation\\
-    webdriver_path: F:\\nfv3.2build\\powercliuiautomation\\WebDriver.dll
-    resource_pool_name: RAIDVIOResourcePool
+    resource_pool_name: vio-controller-nodes
     mgmt_network:
-      net_mask: 255.255.255.0
-      gateway: 172.16.111.254
       start_ip: 172.16.111.56
       end_ip: 172.16.111.60
     api_network:
       net_mask: 255.255.255.0
       gateway: 172.16.130.254
       start_ip: 172.16.130.56
-      end_ip: 172.16.131.60
+      end_ip: 172.16.130.60
     private_openstack_endpoint: 172.16.111.60
     public_openstack_endpoint: 172.16.130.60
-    vio_public_ip: 172.16.130.60
-    vio_admin_password: VMware1!
-    neutron_Type: NSX Policy
-    nsxp:
-      default_tier0_router: vio-tier-0
-      dhcp_profile: vio-dhcp-server-profile
-      metadata_proxy: vio-metadata-proxy
-      metadata_proxy_shared_secret:  secret123
+    admin_password: VMware1!
+    dhcp_profile_id: vio-dhcp-sever-profile
+    metadata_proxy_id: vio-metadata-proxy
+    metadata_proxy_secret: secret
+    tier0_router_name: vio-tier-0
   vrni:
     ova_path: E:\\VMware-vRealize-Network-Insight-5.2.0.1585846638-platform.ova
     dep_size: medium
-    vmname: vrni02
-    # Added to fetch config
+    vmname: VRNIPratform
     hostname: vrni02.nfvlab.local
-    ip_address: 172.16.111.21
     user_name: admin@local
-    password: VMware1!
+    user_password: VMware1!
     domain: LOCAL
-    proxy_nodes:
-      - vrni02-proxy.nfvlab.local
-
-## Configurations for U-Plane POD
 u_plane:
+  datastore_type:
+  vsan_datastore_name:
+  host:
+    hosts:
+      - ip:
+        tenant_nic:
+        infra_nic:
+        vmotion_ip:
+        vsan_ip:
+        ens_overlay_nic:
+        ens_vlan_nic:
+        std_overlay_nic:
+        std_vlan_nic:
+    user:
+    password:
+    vmotion_mask:
+    vsan_mask:
+  vcenter:
+    deployment_option:
+    appliance_name:
+    hostname:
+    name:
+    gateway:
+    ip_address:
+    ip_family:
+    network_mode:
+    network_prefix:
+    root_password:
+    sso_password:
+    sso_domain:
+    user_name:
+    dc_name:
+    cluster_name:
+    infra_dv_switch:
+    tenant_dv_switch:
+    infra_num_uplink_ports:
+    tenant_num_uplink_ports:
+  portgroup:
+    vmotion:
+      name:
+      vlan_id:
+    esxi:
+      name:
+      vlan_id:
+    vsan:
+      name:
+      vlan_id:
+    vm_mgmt:
+      name:
+      vlan_id:
+    overlay:
+    external1:
+    external2:
+  vcha:
+    ip:
+    prefix:
+    passive_ip:
+    passive_vm_name:
+    witness_ip:
+    witness_vm_name:
+    subnet_mask:
+    gateway:
+  edge_cluster:
+    hosts:
+      - ip:
+        tenant_nic:
+        infra_nic:
+        vmotion_ip:
+        vsan_ip:
+    user:
+    password:
+    vmotion_mask:
+    vsan_mask:
+    portgroup:
+      vmotion:
+        name:
+        vlan_id:
+      esxi:
+        name:
+        vlan_id:
+      vsan:
+        name:
+        vlan_id:
+      vm_mgmt:
+        name:
+        vlan_id:
+      overlay:
+      external1:
+      external2:
+    cluster_name:
+    infra_dv_switch:
+    tenant_dv_switch:
+    infra_num_uplink_ports:
+    tenant_num_uplink_ports:
+  nsxt:
+    edge_node:
+      edge_cluster_transport_node_type:
+      edge_cluster_name:
+      edge_cluster_name_for_vio:
+      deployment_size:
+      cli_password:
+      root_password:
+      prefix:
+      nodes:
+        - ip:
+          vm_name:
+          transport_node_name:
+          hostname:
+    bare_metal_edges:
+      ip: 
+      admin_user_name:
+      admin_password:
+    ip_pool:
+      nsxt:
+        start_addres:
+        end_address:
+        cidr:
+        name:
+      edge:
+        start_addres:
+        end_address:
+        cidr:
+        name:
+      edge_ens:
+        start_addres:
+        end_address:
+        cidr:
+        name:
+    uplink_profile_mtu:
+    ova_path:
+    vm_name:
+    root_password:
+    cli_password:
+    admin_password:
+    audit_password:
+    admin_user_name:
+    audit_user_name:
+    host_name:
+    ip_address:
+    v_ip:
+    net_mask:
+    gate_way:
+    prefix:
+    dep_size:
+    ip_type:
+    license: 
+    role:
+    node01_ip_address:
+    node02_ip_address:
+    form_factor:
+    load_balancer_size:
+    transport_zone:
+      management: 
+        standard:
+          host_switch_profile:
+          edge_switch_profile:
+          transport_zone_host_switch_name:
+          uplink_1_transport_zone:
+            display_name:
+            host_switch_name:
+            description:
+            type:
+            host_switch_profile:
+            vlan:
+          uplink_2_transport_zone:
+            display_name:
+            host_switch_name:
+            description:
+            type:
+            host_switch_profile:
+            vlan:
+        overlay_transport_zone:
+          display_name:
+          description:
+          type:
+          vlan:
+        vlan_transport_zone:
+          display_name:
+          description:
+          type:
+      resource:
+        host_switch_profile:
+        edge_switch_profile:
+        transport_zone_host_switch_name:
+        overlay_transport_zone:
+          display_name:
+          description:
+          type:
+          vlan:
+        vlan_transport_zone:
+          display_name:
+          description:
+          type:
+      ens:
+        host_switch_profile:
+        transport_zone_host_switch_name:
+        overlay_transport_zone:
+          display_name:
+          description:
+          type:
+          vlan:
+        vlan_transport_zone:
+          display_name:
+          description:
+          type:
+  vrli:
+    node_ova_path:
+    node_ip_address:
+    node_vm_name:
+    node_domain_name:
+    node_net_mask:
+    node_gate_way:
+    node_deployment_option:
+    node_ip_type:
+    node_root_password:
+    license:
+    user_name:
+    emailid:
+    vip_address:
+    vip_fqdn:
+    content_pack_location:
+    worker_node:
+      - ip_address:
+        vm_name:
+        domain_name:
+  vrops:
+    ova_path:
+    master_node_vm_name:
+    replica_node_vm_name:
+    data_node_vm_name:
+    master_deployment_size:
+    master_node_ip:
+    replica_node_ip:
+    data_node_ip:
+    node_gateway:
+    node_net_mask:
+    node_ip_type:
+    node_time:
+    node_admin_password:
+    node_user_name:
+    license_key:
+  vio:
+    ova_path:
+    domain_name:
+    management_ip:
+    net_mask:
+    gateway:
+    ip_allocation_policy:
+    user_password:
+    ovf_tool_path:
+    vm_name:
+    root_password:
+    service_cidr:
+    pod_cidr:
+    service_domain:
+    resource_pool_name:
+    mgmt_network:
+      start_ip:
+      end_ip:
+    api_network:
+      net_mask:
+      gateway:
+      start_ip:
+      end_ip:
+    private_openstack_endpoint:
+    public_openstack_endpoint:
+    admin_password:
+    dhcp_profile_id:
+    metadata_proxy_id:
+    metadata_proxy_secret:
+    tier0_router_name:
+  vrni:
+    ova_path:
+    dep_size:
+    vmname:
