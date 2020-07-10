@@ -1,2 +1,11 @@
-# dump-vcloud-nfv-config
-Python scripts for dumping vCloud NFV components
+# nfvstack_collector
+
+Python scripts for dumping configurations of vClud NFV componets.  
+
+***
+
+## Components versionings
+
+***
+
+## Runtimes
