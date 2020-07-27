@@ -21,7 +21,7 @@ def read_config_from_file(conf_file_path):
 
 
 def export_config_to_file(dump_data, prefix):
-    EXPORT_PATH = './{}_nfvconfig'.format(prefix)
+    EXPORT_PATH = f'./{prefix}_nfvconfig'
     if not os.path.exists(EXPORT_PATH):
         os.mkdir(EXPORT_PATH)
     target_product = dump_data['product']
@@ -420,7 +420,7 @@ if __name__ == "__main__":
     LOG_DIR = './logs'
     if not os.path.exists(LOG_DIR):
         os.mkdir(LOG_DIR)
-    LOG_FILENAME = '{}_nfvstack_collector.log'.format(PREFIX)
+    LOG_FILENAME = f'{PREFIX}_nfvstack_collector.log'
     LOG_FILE_PATH = os.path.join(LOG_DIR, LOG_FILENAME)
 
     # Basic log handler
@@ -434,16 +434,16 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
     logging.getLogger(__name__).addHandler(console)
 
-    logger.info('>>> Logfile : [ {} ]'.format(LOG_FILE_PATH))
+    logger.info(f'>>> Logfile : [ {LOG_FILE_PATH} ]')
 
     # Input file validations
     NFV_STACK_YAML = './InputFile-NFVStack.yaml'
     if os.path.exists(NFV_STACK_YAML):
-        logger.info('>>> Loading input parameter file : [ {} ]'.format(NFV_STACK_YAML))
+        logger.info(f'>>> Loading input parameter file : [ {NFV_STACK_YAML} ]')
         configs = read_config_from_file(conf_file_path=NFV_STACK_YAML)
     else:
         logger.error('Provided configuration file path is wrong.')
-        logger.error('Configuration file is expected to be allocated on: {} '.format(NFV_STACK_YAML))
+        logger.error(f'Configuration file is expected to be allocated on: {NFV_STACK_YAML} ')
         sys.exit(1)
 
     logger.info('>>> Start collecting configurations, this might take some time ...')
