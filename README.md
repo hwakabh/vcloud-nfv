@@ -33,3 +33,4 @@ The runtime information, where the codes here would be executed are the below:
 | OS | Windows 2016 |
 | PowerShell | PowerShell 5.0 or later |
 | VMware PowerCLI | PowerCLI 10.0 or later |
+| Python | Python 3.8.2 |
