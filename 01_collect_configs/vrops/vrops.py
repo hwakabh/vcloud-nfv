@@ -84,13 +84,16 @@ class VROps():
     def get_cluster_configs(self):
         cluster_config = []
         ret = self.casa_get(urisuffix='/casa/cluster/config')
-        # TODO: Fetch IP address from separate API endpoints
-        # ipaddr = self.casa_get(urisuffix='/casa/node/status')
+        ipaddress = self.casa_get(urisuffix='/casa/sysadmin/cluster/membership')
+        nodes = {}
+        for pair in list(ipaddress['slices'].values()):
+            nodes[pair['slice_name']] = pair['ip_address']
+
         for cluster in ret['slices']:
             cluster_config.append({
                 'nodename': cluster['node_name'],
                 'deploy_role': cluster['node_type'],
-                # 'ipaddress': ipaddr['address'],
+                'ipaddress': nodes[cluster['node_name']],
                 'netmask': cluster['network_properties']['network1_netmask'],
                 'gateway': cluster['network_properties']['default_gateway'],
                 'dns': {
@@ -107,6 +110,7 @@ class VROps():
         for mp in ret['solution']:
             mp_configs.append({
                 'name': mp['name'],
+                'id': mp['id'],
                 'version': mp['version']
             })
         return mp_configs
