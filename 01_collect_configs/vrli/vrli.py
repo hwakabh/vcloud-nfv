@@ -98,8 +98,12 @@ class VRli():
         content_pack_configs = []
         ret = self.get(urisuffix='/api/v1/content/contentpack/list')
         for cp in ret['contentPackMetadataList']:
+            ns = self.get(
+                urisuffix='/api/v1/content/contentpack/{}'.format(cp['namespace'])
+            )
             content_pack_configs.append({
                 'name': cp['name'],
+                'id': ns['contentPackId'],
                 # 'format_version': cp['formatVersion'],
                 'content_version': cp['contentVersion']
             })
